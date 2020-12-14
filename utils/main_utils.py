@@ -49,8 +49,8 @@ def set_seed(seed: int) -> None:
 
 def make_dir(path: PathT) -> None:
     """
-    Given a path, creating a directory in it
-    :param path: string of the path
+    Given a image_path, creating a directory in it
+    :param path: string of the image_path
     """
     if not os.path.exists(path):
         os.mkdir(path)
