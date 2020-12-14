@@ -83,15 +83,18 @@ class MyDataset(Dataset):
             questions_by_image_id[image_id] = (q['question_id'], q_embedding)
 
 
-        all_possible_answers = set()
-
+        all_possible_answers = list()
+        print(len(annotations))
         for annot in annotations:
             if annot["question_id"] in all_questions_ids:
-                for answer in annot["answers"]:
-                    print(answer)
-                    all_possible_answers.add(answer["answer"])
+                all_possible_answers.append(annot["multiple_choice_answer"])
+            else:
+                print(f"oh no")
+                # for answer in annot["answers"]:
+                #     print(answer)
+                #     all_possible_answers.add(answer["answer"])
 
-        print(len(all_possible_answers))
+        print(len(set(all_possible_answers)))
 
 
         features = []
