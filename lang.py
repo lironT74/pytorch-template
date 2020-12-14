@@ -32,6 +32,23 @@ class Lang:
         else:
             self.word2count[word] += 1
 
+
+    def sentence_indexes(self, sentence):
+        sentence = normalize_string(sentence).split(' ')
+
+        indexes = [SOS_token]
+
+        for i, word in enumerate(sentence):
+            if word not in self.word2index:
+                indexes.append(UKN_token)
+            else:
+                indexes.append(self.word2index[word])
+
+        indexes.append(EOS_token)
+
+        return torch.tensor(indexes)
+
+
     def sentence_embedding(self, sentence):
         sentence = normalize_string(sentence).split(' ')
         sentence_matrix = torch.zeros(len(sentence)+2, self.n_words)

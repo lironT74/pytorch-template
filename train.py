@@ -28,7 +28,7 @@ def get_metrics(best_eval_score: float, eval_score: float, train_loss: float) ->
 
 
 def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, train_params: TrainParams,
-          logger: TrainLogger) -> Metrics:
+          logger: TrainLogger, batch_size: int) -> Metrics:
     """
     Training procedure. Change each part if needed (optimizer, loss, etc.)
     :param model:
@@ -54,8 +54,13 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
         metrics = train_utils.get_zeroed_metrics_dict()
 
         for i, (x, y) in enumerate(train_loader):
+            image_tensor, q_words_indexes_tensor = x
+            label_counts, labels, scores = y
+            # y_tensor = torch.zeros(batch_size)
+            # for
             if torch.cuda.is_available():
-                x = x.cuda()
+                image_tensor = image_tensor.cuda()
+                q_words_indexes_tensor = q_words_indexes_tensor.cuda()
                 y = y.cuda()
 
             y_hat = model(x)
