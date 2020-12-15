@@ -36,16 +36,16 @@ class MyDataset(Dataset):
         if is_Train:
             self.q_path = '/datashare/v2_OpenEnded_mscoco_train2014_questions.json'
             self.ann_path = '/home/student/HW2/data/cache/train_target.pkl'
-            self.image_path = '/datashare/train2014'
+            self.image_path = '/datashare/train2014/'
             self.target_labels_path = '/home/student/HW2/data/cache/train_target.pkl'
-            self.all_data_path = '/home/student/HW2/data/data_batches_train'
+            self.all_q_a_path = '/home/student/HW2/data/data_batches_train.pkl'
 
         else:
             self.q_path = '/datashare/v2_OpenEnded_mscoco_val2014_questions.json'
             self.ann_path = '/home/student/HW2/data/cache/val_target.pkl'
-            self.image_path = '/datashare/val2014'
+            self.image_path = '/datashare/val2014/'
             self.target_labels_path = '/home/student/HW2/data/cache/val_target.pkl'
-            self.all_data_path = '/home/student/HW2/data/data_batches_val'
+            self.all_q_a_path = '/home/student/HW2/data/data_batches_val.pkl'
 
 
         with open('/home/student/HW2/data/cache/trainval_ans2label.pkl', 'rb') as f:
@@ -64,16 +64,19 @@ class MyDataset(Dataset):
             self.target_labels = pickle.load(f)
 
 
+        with open(self.all_q_a_path, 'rb') as f:
+            self.all_q_a = pickle.load(f)
+
+
         self.num_of_words = len(self.words2index)
 
         self.is_Train = is_Train
 
-        # self.num_features = len(listdir(self.all_data_path))
+        self.num_features = len(self.all_q_a)
 
 
-        self.num_features = 0
-        self._get_features()
-
+        # self.num_features = 0
+        # self._get_features()
 
         # # Create list of entries
         # self.entries = self._get_entries()
@@ -82,24 +85,28 @@ class MyDataset(Dataset):
 
     def __getitem__(self, index: int) -> Tuple:
 
-        if self.is_Train:
-            with open(f'/home/student/HW2/data/data_batches_train/index_{index+1}.pkl', 'rb') as f:
-                features = pickle.load(f)
-        else:
-            with open(f'/home/student/HW2/data/data_batches_val/index_{index+1}.pkl', 'rb') as f:
-                features = pickle.load(f)
-
-        return features['x'], features['y']
+        (image_id, question_words_indexes, (label_counts, labels, scores)) = self.all_q_a
 
 
-        # return self.features[index]['x'], self.features[index]['y']
+        the_image_path = f'{self.image_path}COCO_train2014_{str(image_id).zfill(12)}.jpg'
+
+        image = Image.open(the_image_path)
+        image_tensor = transforms.ToTensor()(image).unsqueeze(0)  # unsqueeze to add artificial first dimension
+
+        if image_tensor.shape[1] == 1:
+            image_tensor = image_tensor.squeeze()
+            image_tensor = torch.stack([image_tensor, image_tensor, image_tensor])
+            image_tensor = image_tensor.unsqueeze(0)
+
+
+        return (image_tensor, question_words_indexes), (label_counts, labels, scores)
+
 
 
     def __len__(self) -> int:
         """
         :return: the length of the dataset (number of sample).
         """
-        # return len(self.features)
         return self.num_features
 
 
@@ -114,7 +121,6 @@ class MyDataset(Dataset):
         # Read json of questions
         with open(self.q_path, "r") as q_file:
             questions = json.load(q_file)['questions']
-
 
 
         # Make dictionary of questions by image id
@@ -224,6 +230,6 @@ class MyDataset(Dataset):
 
 
 if __name__ == '__main__':
-    dataset = MyDataset(is_Train=True)
-    dataset = MyDataset(is_Train=False)
+    dataset_train = MyDataset(is_Train=True)
+    dataset_val = MyDataset(is_Train=False)
 
