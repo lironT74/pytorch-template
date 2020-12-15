@@ -158,14 +158,16 @@ class TrainLogger:
 
             self.tensorboard_writer_train.add_scalar('Loss', scalars['Loss/Train'], epoch)
             self.tensorboard_writer_train.add_scalar('Accuracy', scalars['Accuracy/Train'], epoch)
+            self.tensorboard_writer_train.add_scalar('Error', 1-scalars['Accuracy/Train'], epoch)
 
-            self.tensorboard_writer_val.add_scalar('Loss', scalars['Loss/Train'], epoch)
-            self.tensorboard_writer_val.add_scalar('Accuracy', scalars['Accuracy/Train'], epoch)
+            self.tensorboard_writer_val.add_scalar('Loss', scalars['Loss/Validation'], epoch)
+            self.tensorboard_writer_val.add_scalar('Accuracy', scalars['Accuracy/Validation'], epoch)
+            self.tensorboard_writer_val.add_scalar('Error', 1-scalars['Accuracy/Validation'], epoch)
 
 
 
     def write_epoch_statistics(self, epoch: int, epoch_time: float, train_loss: float, norm: float,
-                               train_score: float, eval_score: float) -> None:
+                               train_score: float, eval_score: float, eval_loss: float) -> None:
         """
         Write multiple metrics
         :param epoch:
@@ -174,12 +176,14 @@ class TrainLogger:
         :param norm:
         :param train_score:
         :param eval_score:
+        :param eval_loss:
         """
         text = 'Time: %.2f, ' % epoch_time
         text += 'Gradient norm: %.4f, ' % train_loss
         text += 'Train loss: %.2f, ' % norm
         text += 'Train Score: %.2f, ' % train_score
         text += 'Val score: %.2f' % eval_score
+        text += 'Val loss: %.2f' % eval_loss
 
         self.write(text, epoch)
 

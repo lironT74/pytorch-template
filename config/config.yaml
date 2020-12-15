@@ -17,11 +17,11 @@ main:
     validation: 'data/validation.pkl'
     logs: 'logs/'
 train:
-  num_epochs: 5
+  num_epochs: 100
   grad_clip: 0.25
   dropout: 0.2
   num_hid: 20
-  batch_size: 16
+  batch_size: 1024
   save_model: True
   lr:
     lr_value: 1e-3

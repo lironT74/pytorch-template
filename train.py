@@ -16,6 +16,13 @@ from utils.train_logger import TrainLogger
 from data_preprocess import get_score
 import matplotlib.pyplot
 
+from datetime import datetime
+def cur_time():
+    now = datetime.now()
+    cur_time = now.strftime("%d/%m/%Y %H:%M:%S")
+    return cur_time
+
+
 
 def get_metrics(best_eval_score: float, eval_score: float, train_loss: float) -> Metrics:
     """
@@ -53,14 +60,21 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                                                 gamma=train_params.lr_gamma)
 
     criterion = nn.NLLLoss()
+    # for i, (x,y) in enumerate(train_loader):
+    #     print(f'Liron homo #{i+1} ({cur_time()})')
+    #     image_tensor, q_words_indexes_tensor = x
+    #     label_counts, labels, scores = y
+    #     assert len(labels) > 0, "Labels is empty"
+    #     assert len(scores) > 0, 'Scores is empty'
 
     for epoch in tqdm(range(train_params.num_epochs)):
         t = time.time()
         metrics = train_utils.get_zeroed_metrics_dict()
         optimizer.zero_grad()
-        print()
+        print(f"Epoch: {epoch+1}  ({cur_time()})")
+        batch_counter = 1
         for i, (x, y) in enumerate(train_loader):
-            print(f'Epoch: {epoch+1}, Image {i+1}/{len(train_loader)}')
+            # print(f'Epoch: {epoch+1}, Image {i+1}/{len(train_loader)}')
             image_tensor, q_words_indexes_tensor = x
             label_counts, labels, scores = y
 
@@ -77,7 +91,10 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
             loss = criterion(y_hat, y_multiple_choice_answers)
             loss.backward()
-            if i % batch_size == 0 or i > 100:
+            if i % batch_size == 0 or i == len(train_loader) - 1:
+
+                print(f'Epoch: {epoch+1}, Image {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
+
                 optimizer.step()
                 optimizer.zero_grad()
 
@@ -98,29 +115,30 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
             metrics['train_loss'] += loss.item()
 
-            if i > 98:
-                break
+            # if i > 98:
+            #     break
         # Learning rate scheduler step
         scheduler.step()
 
         # Calculate metrics
-        metrics['train_loss'] /= 100
+        metrics['train_loss'] /= len(train_loader)
 
         norm = metrics['total_norm'] / metrics['count_norm']
 
         model.train(False)
         # Loss is not relevant, so we put it 0
-        metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader)
+        metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader, criterion)
         model.train(True)
 
         epoch_time = time.time() - t
         logger.write_epoch_statistics(epoch, epoch_time, metrics['train_loss'], norm,
-                                      metrics['train_score'], metrics['eval_score'])
+                                      metrics['train_score'], metrics['eval_score'], metrics['eval_loss'])
 
         scalars = {'Accuracy/Train': metrics['train_score'],
                    'Accuracy/Validation': metrics['eval_score'],
                    'Loss/Train': metrics['train_loss'],
                    'Loss/Validation': metrics['eval_loss']}
+        # print(scalars)
 
         logger.report_scalars(scalars, epoch, separated=False)
 
@@ -134,7 +152,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
 
 @torch.no_grad()
-def evaluate(model: nn.Module, dataloader: DataLoader) -> Scores:
+def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
     """
     Evaluate a model without gradient calculation
     :param model: instance of a model
@@ -142,36 +160,53 @@ def evaluate(model: nn.Module, dataloader: DataLoader) -> Scores:
     :return: tuple of (accuracy, loss) values
     """
     score = 0
+    loss = 0
     lost_counter = 0
     for i, (x, y) in enumerate(dataloader):
-        print(f'Validation evaluation: {i+1}/{len(dataloader)}')
+        # print(f'Validation evaluation: {i+1}/{len(dataloader)}')
         image_tensor, q_words_indexes_tensor = x
         label_counts, labels, scores = y
+
+        if len(scores) == 0:
+            score += 0
+            lost_counter += 1
+            continue
 
         if torch.cuda.is_available():
             image_tensor = image_tensor.cuda()
             q_words_indexes_tensor = q_words_indexes_tensor.cuda()
+            labels = labels.cuda()
 
         y_hat = model((image_tensor, q_words_indexes_tensor))
 
         y_hat_index = torch.argmax(y_hat, dim=1).item()
 
+
         if y_hat_index not in label_counts:
-            lost_counter += 1
             score += 0
         else:
+            y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
+            y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
+            loss += criterion(y_hat, y_multiple_choice_answers).item()
             score += get_score(label_counts[y_hat_index])
 
-        # # TODO: change it
-        if i > 48:
-            break
-    print(f'Lost {lost_counter} items')
-    loss = 0
+        if i % 8000 == 0 or i == len(dataloader) - 1:
+            print(f'Evaluation at example #{i+1} ({cur_time()})')
+
+        # TODO: change it
+        # if i > 48:
+        #     break
+    # print(f'Lost {lost_counter} items')
 
     # TODO: change it in places
-    # score /= len(dataloader.dataset)
-    score /= 50
+    score /= len(dataloader)
+    loss /= len(dataloader) - lost_counter
 
-    score *= 100
+    #
+    # score /= 50
+    # loss /= 50 - lost_counter
+
+
+    # score *= 100
 
     return score, loss
