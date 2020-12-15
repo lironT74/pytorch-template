@@ -32,7 +32,7 @@ class MyDataset(Dataset):
     """
     Custom dataset template. Implement the empty functions.
     """
-    def __init__(self, is_Train: bool, lang=None) -> None:
+    def __init__(self, is_Train: bool) -> None:
         if is_Train:
             self.q_path = '/datashare/v2_OpenEnded_mscoco_train2014_questions.json'
             self.ann_path = '/home/student/HW2/data/cache/train_target.pkl'
@@ -68,7 +68,7 @@ class MyDataset(Dataset):
 
         self.is_Train = is_Train
 
-        # self.num_features = listdir(self.all_data_path)
+        # self.num_features = len(listdir(self.all_data_path))
 
 
         self.num_features = 0
@@ -115,6 +115,8 @@ class MyDataset(Dataset):
         with open(self.q_path, "r") as q_file:
             questions = json.load(q_file)['questions']
 
+
+
         # Make dictionary of questions by image id
         questions_words_indexes_by_image_id = {}
 
@@ -136,78 +138,63 @@ class MyDataset(Dataset):
             questions_answers_by_image_id[target['image_id']] = (label_counts, torch.tensor(labels), torch.tensor(scores))
 
 
-        # features = []
+        all_q_and_a = []
+        for image_id in questions_words_indexes_by_image_id.keys():
 
-        images_num = len(listdir(self.image_path))
-        print(f"there are {images_num} images ({cur_time()})")
+            question_words_indexes = questions_words_indexes_by_image_id[image_id]
+            label_counts, labels, scores = questions_answers_by_image_id[target['image_id']]
 
-        for f in listdir(self.image_path):
-
-            if isfile(join(self.image_path, f)):
-
-                image_id = int(f.split('_')[-1].split('.')[0])
-                image = Image.open(f'{self.image_path}/{f}')
-                image_tensor = transforms.ToTensor()(image).unsqueeze(0)  # unsqueeze to add artificial first dimension
-
-                if image_tensor.shape[1] == 1:
-                    image_tensor = image_tensor.squeeze()
-                    image_tensor = torch.stack([image_tensor, image_tensor, image_tensor])
-                    image_tensor = image_tensor.unsqueeze(0)
-
-                q_words_indexes_tensor = questions_words_indexes_by_image_id[image_id]
-                label_counts, labels, scores = questions_answers_by_image_id[image_id]
+            all_q_and_a.append((image_id, question_words_indexes, (label_counts, labels, scores)))
 
 
-                cur_example = {
-                                 'x': (image_tensor, q_words_indexes_tensor),
-                                 'y': (label_counts, labels, scores)
-                }
+        if self.is_Train:
+            with open(f'/home/student/HW2/data/data_batches_train.pkl', 'wb') as f:
+                pickle.dump(all_q_and_a, f)
+        else:
+            with open(f'/home/student/HW2/data/data_batches_val.pkl', 'wb') as f:
+                pickle.dump(all_q_and_a, f)
 
 
-                self.num_features += 1
 
-                if self.is_Train:
-                    with open(f'/home/student/HW2/data/data_batches_train/index_{self.num_features}.pkl', 'wb') as f:
-                        pickle.dump(cur_example, f)
-                else:
-                    with open(f'/home/student/HW2/data/data_batches_val/index_{self.num_features}.pkl', 'wb') as f:
-                        pickle.dump(cur_example, f)
-
-
-                print(f"saved exampe {self.num_features}/{images_num} ({cur_time()})")
-
-
-                # features.append(cur_example)
-
-                # print(f"{image_index}/{images_num}")
-                #
-                # image_index += 1
-                #
-                # if image_index % BATCH_SIZE == 0:
-                #
-                #     if self.is_Train:
-                #         with open(f'/home/student/HW2/data/data_batches_train/batch_{batch_num}.pkl', 'wb') as f:
-                #             pickle.dump(features, f)
-                #     else:
-                #         with open(f'/home/student/HW2/data/data_batches_val/batch_{batch_num}.pkl', 'wb') as f:
-                #             pickle.dump(features, f)
-                #
-                #         print(f"saved bach {batch_num}")
-                #
-                #     batch_num = + 1
-                #
-                #     features = []
-
-        # if self.is_Train:
-        #     with open(f'/home/student/HW2/data/data_batches_train/batch_{batch_num}.pkl', 'wb') as f:
-        #         pickle.dump(features, f)
-        # else:
-        #     with open(f'/home/student/HW2/data/data_batches_val/batch_{batch_num}.pkl', 'wb') as f:
-        #         pickle.dump(features, f)
+        # # features = []
         #
-        # print(f"saved bach {batch_num}")
-
-        # return features
+        # images_num = len(listdir(self.image_path))
+        # print(f"there are {images_num} images ({cur_time()})")
+        #
+        # for f in listdir(self.image_path):
+        #
+        #     if isfile(join(self.image_path, f)):
+        #
+        #         image_id = int(f.split('_')[-1].split('.')[0])
+        #         image = Image.open(f'{self.image_path}/{f}')
+        #         image_tensor = transforms.ToTensor()(image).unsqueeze(0)  # unsqueeze to add artificial first dimension
+        #
+        #         if image_tensor.shape[1] == 1:
+        #             image_tensor = image_tensor.squeeze()
+        #             image_tensor = torch.stack([image_tensor, image_tensor, image_tensor])
+        #             image_tensor = image_tensor.unsqueeze(0)
+        #
+        #         q_words_indexes_tensor = questions_words_indexes_by_image_id[image_id]
+        #         label_counts, labels, scores = questions_answers_by_image_id[image_id]
+        #
+        #
+        #         cur_example = {
+        #                          'x': (image_tensor, q_words_indexes_tensor),
+        #                          'y': (label_counts, labels, scores)
+        #         }
+        #
+        #
+        #         self.num_features += 1
+        #
+        #         if self.is_Train:
+        #             with open(f'/home/student/HW2/data/data_batches_train/index_{self.num_features}.pkl', 'wb') as f:
+        #                 pickle.dump(cur_example, f)
+        #         else:
+        #             with open(f'/home/student/HW2/data/data_batches_val/index_{self.num_features}.pkl', 'wb') as f:
+        #                 pickle.dump(cur_example, f)
+        #
+        #
+        #         print(f"saved exampe {self.num_features}/{images_num} ({cur_time()})")
 
 
 
