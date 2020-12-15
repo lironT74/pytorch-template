@@ -98,9 +98,6 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 optimizer.step()
                 optimizer.zero_grad()
 
-
-
-
             # Calculate metrics
             metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
             metrics['count_norm'] += 1
@@ -111,7 +108,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
             if y_hat_index not in label_counts:
                 metrics['train_score'] += 0
             else:
-                metrics['train_score'] += get_score(label_counts[y_hat_index])
+                metrics['train_score'] += get_score(label_counts[y_hat_index]) / len(train_loader)
 
             metrics['train_loss'] += loss.item()
 
