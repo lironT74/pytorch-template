@@ -37,6 +37,7 @@ def main(cfg: DictConfig) -> None:
     train_dataset = MyDataset(is_Train=True)
     word_vocab_size = train_dataset.num_of_words
     num_clases = train_dataset.num_of_labels
+    print(train_dataset.label2ans[3])
 
     # val_dataset = MyDataset(path=cfg['main']['paths']['validation'])
     train_loader = DataLoader(train_dataset, 1, shuffle=True,

@@ -51,11 +51,15 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                                                 step_size=train_params.lr_step_size,
                                                 gamma=train_params.lr_gamma)
 
+    criterion = nn.NLLLoss()
+
+
     for epoch in tqdm(range(train_params.num_epochs)):
         t = time.time()
         metrics = train_utils.get_zeroed_metrics_dict()
         optimizer.zero_grad()
         for i, (x, y) in enumerate(train_loader):
+            print(f'Epoch: {epoch+1}, Image {i+1}/{len(train_loader)}')
             image_tensor, q_words_indexes_tensor = x
             label_counts, labels, scores = y
 
@@ -67,16 +71,24 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
             y_hat = model((image_tensor, q_words_indexes_tensor))
 
+            print(scores)
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
-            loss = nn.NLLLoss(y_hat, y_multiple_choice_answers)
+            loss = criterion(y_hat, y_multiple_choice_answers)
             loss.backward()
 
             # Optimization step
-            if i % batch_size == 0 or i + 1 == len(train_loader):
+            # if i % batch_size == 0 or i + 1 == len(train_loader):
+            #     optimizer.step()
+            #     optimizer.zero_grad()
+
+            if i % batch_size == 0 or i > 100:
                 optimizer.step()
                 optimizer.zero_grad()
+
+
+
 
             # Calculate metrics
             metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
@@ -84,23 +96,27 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
             # NOTE! This function compute scores correctly only for one hot encoding representation of the logits
             # batch_score = train_utils.compute_score_with_logits(y_hat, y.data).sum()
+            print(y_hat.size())
             y_hat_index = torch.argmax(y_hat, dim=1).item()
             if y_hat_index not in label_counts:
                 metrics['train_score'] += 0
             else:
+                print('----')
+                print(y_hat)
+                print(y_hat_index)
+                print(label_counts[y_hat_index])
+                print(label_counts)
                 metrics['train_score'] += get_score(label_counts[y_hat_index])
 
             metrics['train_loss'] += loss.item()
 
-            # # Report model to tensorboard
-            # if epoch == 0 and i == 0:
-            #     logger.report_graph(model, x)
-
+            if i > 99:
+                break
         # Learning rate scheduler step
         scheduler.step()
 
         # Calculate metrics
-        metrics['train_loss'] /= len(train_loader)
+        metrics['train_loss'] /= 100
 
         norm = metrics['total_norm'] / metrics['count_norm']
 
@@ -140,11 +156,21 @@ def evaluate(model: nn.Module, dataloader: DataLoader) -> Scores:
     loss = 0
 
     for i, (x, y) in tqdm(enumerate(dataloader)):
+        image_tensor, q_words_indexes_tensor = x
+        label_counts, labels, scores = y
+
         if torch.cuda.is_available():
-            x = x.cuda()
-            y = y.cuda()
+            image_tensor = image_tensor.cuda()
+            q_words_indexes_tensor = q_words_indexes_tensor.cuda()
+            labels = labels.cuda()
+            scores = scores.cuda()
 
         y_hat = model(x)
+
+        y_hat = model((image_tensor, q_words_indexes_tensor))
+
+        y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
+        y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
         loss += nn.functional.binary_cross_entropy_with_logits(y_hat, y)
         score += train_utils.compute_score_with_logits(y_hat, y).sum().item()

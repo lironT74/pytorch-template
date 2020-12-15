@@ -27,18 +27,19 @@ class VQA(nn.Module, metaclass=ABCMeta):
 
         self.word_embedding = nn.Embedding(num_embeddings=word_vocab_size, embedding_dim=word_emb_dim)
 
+        self.LSTM_num_layers = LSTM_num_layers
+
         self.question_model = nn.LSTM(input_size=word_emb_dim, hidden_size=output_dim_nets//2, num_layers=LSTM_num_layers,
                                bidirectional=True,
                                batch_first=True)
 
         self.fc = nn.Linear(output_dim_nets, num_classes)
 
-        self.log_softmax = nn.LogSoftmax()
+        self.log_softmax = nn.LogSoftmax(dim=1)
 
 
 
     def forward(self, input: (Tensor, Tensor)) -> Tensor:
-        print('fuck my dick')
         """
         Forward x through MyModel
         :param x:
@@ -51,13 +52,13 @@ class VQA(nn.Module, metaclass=ABCMeta):
         # Pass word_idx and pos_idx through their embedding layers
         word_vec = self.word_embedding(question)        # [batch, seq, emb_dim]
 
-        print('word embd size:', word_vec.size())
-        print(self.question_model(word_vec).size())
-        lstm_output = self.question_model(word_vec)[range(batch_size), [-1]*seq_length]              # [batch, output_dim_nets]
+        _, (h_n_lstm, _) = self.question_model(word_vec)
 
+        h_n_lstm = h_n_lstm.view(self.LSTM_num_layers, batch_size, -1)[-1]  # [batch, output_dim_nets]
+        image = image.squeeze(0)
         resnet_output = self.image_model(image)                         # [batch, output_dim_nets]
 
-        mutual = lstm_output * resnet_output                            # [batch, output_dim_nets]
+        mutual = h_n_lstm * resnet_output                            # [batch, output_dim_nets]
 
         fc_output = self.fc(mutual)                                     # [batch, num_classes]
 

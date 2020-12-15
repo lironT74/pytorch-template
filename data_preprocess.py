@@ -205,6 +205,8 @@ def compute_target(answers_dset, ans2label, name, cache_root):
             labels.append(ans2label[answer])
             score = get_score(answer_count[answer])
             scores.append(score)
+        if len(scores) == 0:
+            print('we are in trouble')
 
         label_counts = {}
         for k, v in answer_count.items():
@@ -258,7 +260,9 @@ def load_v2_answers():
 
     occurence = filter_answers(train_answers, 6)
     ans2label = create_ans2label(occurence, 'trainval', "data/cache")
+    print('train')
     compute_target(train_answers, ans2label, 'train', "data/cache")
+    print('val')
     compute_target(val_answers, ans2label, 'val', "data/cache")
 
 
@@ -321,8 +325,8 @@ def v2_questions_words_dicts():
 
 
 def main():
-    v2_questions_words_dicts()
-    # load_v2_answers()
+    # v2_questions_words_dicts()
+    load_v2_answers()
 
 
 if __name__ == '__main__':

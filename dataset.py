@@ -75,7 +75,7 @@ class MyDataset(Dataset):
 
         self.num_features = len(self.all_q_a)
 
-        # self._get_features()
+        self._get_features()
 
         # # Create list of entries
         # self.entries = self._get_entries()
@@ -96,7 +96,9 @@ class MyDataset(Dataset):
             image_tensor = image_tensor.squeeze()
             image_tensor = torch.stack([image_tensor, image_tensor, image_tensor])
             image_tensor = image_tensor.unsqueeze(0)
-
+        if len(scores) == 0:
+            print('len scores is 0 in getitem')
+            print((image_tensor, question_words_indexes), (label_counts, labels, scores))
 
         return (image_tensor, question_words_indexes), (label_counts, labels, scores)
 
@@ -145,6 +147,8 @@ class MyDataset(Dataset):
         for target in self.target_labels:
 
             label_counts, labels, scores = target['label_counts'], target['labels'], target['scores']
+            if len(scores) == 0:
+                print(target['label_counts'], target['labels'], target['scores'])
             questions_answers_by_image_id[target['image_id']] = (label_counts, torch.tensor(labels), torch.tensor(scores))
 
 
@@ -152,8 +156,9 @@ class MyDataset(Dataset):
         for image_id in questions_words_indexes_by_image_id.keys():
 
             question_words_indexes = questions_words_indexes_by_image_id[image_id]
-            label_counts, labels, scores = questions_answers_by_image_id[target['image_id']]
-
+            label_counts, labels, scores = questions_answers_by_image_id[image_id]
+            # if len(scores) == 0:
+            #     print((image_id, question_words_indexes, (label_counts, labels, scores)))
             all_q_and_a.append((image_id, question_words_indexes, (label_counts, labels, scores)))
 
 
