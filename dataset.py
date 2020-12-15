@@ -18,6 +18,12 @@ from os.path import isfile, join
 
 from data_preprocess import *
 
+from datetime import datetime
+def cur_time():
+    now = datetime.now()
+    cur_time = now.strftime("%d/%m/%Y %H:%M:%S")
+    return cur_time
+
 
 
 BATCH_SIZE = 5000
@@ -32,11 +38,14 @@ class MyDataset(Dataset):
             self.ann_path = '/home/student/HW2/data/cache/train_target.pkl'
             self.image_path = '/datashare/train2014'
             self.target_labels_path = '/home/student/HW2/data/cache/train_target.pkl'
+            self.all_data_path = '/home/student/HW2/data/data_batches_train'
+
         else:
             self.q_path = '/datashare/v2_OpenEnded_mscoco_val2014_questions.json'
             self.ann_path = '/home/student/HW2/data/cache/val_target.pkl'
             self.image_path = '/datashare/val2014'
             self.target_labels_path = '/home/student/HW2/data/cache/val_target.pkl'
+            self.all_data_path = '/home/student/HW2/data/data_batches_val'
 
 
         with open('/home/student/HW2/data/cache/trainval_ans2label.pkl', 'rb') as f:
@@ -59,11 +68,11 @@ class MyDataset(Dataset):
 
         self.is_Train = is_Train
 
-        assert self.is_Train and lang is None or not self.is_Train and lang is not None, "Something is wrong with is train ang lang module"
-        self.lang = Lang() if self.is_Train else lang
+        # self.num_features = listdir(self.all_data_path)
 
-        # Load features
-        self.features = self._get_features()
+
+        self.num_features = 0
+        self._get_features()
 
 
         # # Create list of entries
@@ -72,16 +81,26 @@ class MyDataset(Dataset):
 
 
     def __getitem__(self, index: int) -> Tuple:
-        return self.features[index]['x'], self.features[index]['y']
 
+        if self.is_Train:
+            with open(f'/home/student/HW2/data/data_batches_train/index_{index+1}.pkl', 'rb') as f:
+                features = pickle.load(f)
+        else:
+            with open(f'/home/student/HW2/data/data_batches_val/index_{index+1}.pkl', 'rb') as f:
+                features = pickle.load(f)
+
+        return features['x'], features['y']
+
+
+        # return self.features[index]['x'], self.features[index]['y']
 
 
     def __len__(self) -> int:
         """
         :return: the length of the dataset (number of sample).
         """
-        return len(self.features)
-
+        # return len(self.features)
+        return self.num_features
 
 
     def _get_features(self) -> Any:
@@ -91,19 +110,6 @@ class MyDataset(Dataset):
         :return:
         :rtype:
         """
-
-        batch_num =1
-
-        if self.is_Train:
-            with open(f'/home/student/HW2/data/data_batches_train/batch_{batch_num}.pkl' 'rb') as f:
-                features = pickle.load(f)
-        else:
-            with open(f'/home/student/HW2/data/data_batches_val/batch_{batch_num}.pkl' 'rb') as f:
-                features = pickle.load(f)
-
-        return features
-
-
 
         # Read json of questions
         with open(self.q_path, "r") as q_file:
@@ -127,16 +133,13 @@ class MyDataset(Dataset):
         for target in self.target_labels:
 
             label_counts, labels, scores = target['label_counts'], target['labels'], target['scores']
-            questions_answers_by_image_id[target['image_id']] = (label_counts, labels, scores)
+            questions_answers_by_image_id[target['image_id']] = (label_counts, torch.tensor(labels), torch.tensor(scores))
 
 
-        features = []
+        # features = []
 
         images_num = len(listdir(self.image_path))
-        print(f"there are {images_num} images")
-
-        image_index = 1
-        batch_num = 1
+        print(f"there are {images_num} images ({cur_time()})")
 
         for f in listdir(self.image_path):
 
@@ -155,40 +158,56 @@ class MyDataset(Dataset):
                 label_counts, labels, scores = questions_answers_by_image_id[image_id]
 
 
-                features.append({
+                cur_example = {
                                  'x': (image_tensor, q_words_indexes_tensor),
                                  'y': (label_counts, labels, scores)
-                })
+                }
 
-                print(f"{image_index}/{images_num}")
 
-                image_index += 1
+                self.num_features += 1
 
-                if image_index % BATCH_SIZE == 0:
+                if self.is_Train:
+                    with open(f'/home/student/HW2/data/data_batches_train/index_{self.num_features}.pkl', 'wb') as f:
+                        pickle.dump(cur_example, f)
+                else:
+                    with open(f'/home/student/HW2/data/data_batches_val/index_{self.num_features}.pkl', 'wb') as f:
+                        pickle.dump(cur_example, f)
 
-                    if self.is_Train:
-                        with open(f'/home/student/HW2/data/data_batches_train/batch_{batch_num}.pkl', 'wb') as f:
-                            pickle.dump(features, f)
-                    else:
-                        with open(f'/home/student/HW2/data/data_batches_val/batch_{batch_num}.pkl', 'wb') as f:
-                            pickle.dump(features, f)
 
-                        print(f"saved bach {batch_num}")
+                print(f"saved exampe {self.num_features}/{images_num} ({cur_time()})")
 
-                    batch_num = + 1
 
-                    features = []
+                # features.append(cur_example)
 
-        if self.is_Train:
-            with open(f'/home/student/HW2/data/data_batches_train/batch_{batch_num}.pkl', 'wb') as f:
-                pickle.dump(features, f)
-        else:
-            with open(f'/home/student/HW2/data/data_batches_val/batch_{batch_num}.pkl', 'wb') as f:
-                pickle.dump(features, f)
+                # print(f"{image_index}/{images_num}")
+                #
+                # image_index += 1
+                #
+                # if image_index % BATCH_SIZE == 0:
+                #
+                #     if self.is_Train:
+                #         with open(f'/home/student/HW2/data/data_batches_train/batch_{batch_num}.pkl', 'wb') as f:
+                #             pickle.dump(features, f)
+                #     else:
+                #         with open(f'/home/student/HW2/data/data_batches_val/batch_{batch_num}.pkl', 'wb') as f:
+                #             pickle.dump(features, f)
+                #
+                #         print(f"saved bach {batch_num}")
+                #
+                #     batch_num = + 1
+                #
+                #     features = []
 
-        print(f"saved bach {batch_num}")
+        # if self.is_Train:
+        #     with open(f'/home/student/HW2/data/data_batches_train/batch_{batch_num}.pkl', 'wb') as f:
+        #         pickle.dump(features, f)
+        # else:
+        #     with open(f'/home/student/HW2/data/data_batches_val/batch_{batch_num}.pkl', 'wb') as f:
+        #         pickle.dump(features, f)
+        #
+        # print(f"saved bach {batch_num}")
 
-        return features
+        # return features
 
 
 
@@ -219,4 +238,5 @@ class MyDataset(Dataset):
 
 if __name__ == '__main__':
     dataset = MyDataset(is_Train=True)
+    dataset = MyDataset(is_Train=False)
 
