@@ -24,7 +24,6 @@ class VQA(nn.Module, metaclass=ABCMeta):
 
         self.image_model = resnet18(3, output_dim_nets)
 
-
         self.word_embedding = nn.Embedding(num_embeddings=word_vocab_size, embedding_dim=word_emb_dim)
 
         self.LSTM_num_layers = LSTM_num_layers
