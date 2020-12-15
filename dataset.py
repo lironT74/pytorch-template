@@ -74,9 +74,7 @@ class MyDataset(Dataset):
 
         self.num_features = len(self.all_q_a)
 
-
-        # self.num_features = 0
-        # self._get_features()
+        self._get_features()
 
         # # Create list of entries
         # self.entries = self._get_entries()
@@ -130,7 +128,12 @@ class MyDataset(Dataset):
             indexes = []
 
             for word in preprocess_answer(q['question']).split(' '):
-                indexes.append(self.words2index[word])
+
+                if word in self.words2index:
+                    indexes.append(self.words2index[word])
+                else:
+                    indexes.append(self.words2index['<UNK>'])
+
 
             image_id = q['image_id']
             questions_words_indexes_by_image_id[image_id] = torch.tensor(indexes)

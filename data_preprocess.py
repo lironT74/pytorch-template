@@ -255,6 +255,7 @@ def load_v2_answers():
     with open(val_answer_file) as f:
         val_answers = json.load(f)['annotations']
 
+
     occurence = filter_answers(train_answers, 6)
     ans2label = create_ans2label(occurence, 'trainval', "data/cache")
     compute_target(train_answers, ans2label, 'train', "data/cache")
@@ -266,7 +267,7 @@ def load_v2_answers():
 
 
 
-def questions_data_words_to_indexes(train_question, val_question, name, cache_root):
+def questions_data_words_to_indexes(train_question, name, cache_root):
 
     word2index = {}
     index2word = {}
@@ -280,14 +281,16 @@ def questions_data_words_to_indexes(train_question, val_question, name, cache_ro
                 index2word[index] = word
                 index += 1
 
+    word2index['<UNK>'] = index
+    index2word[index] = '<UNK>'
 
-    for q in val_question:
-        for word in preprocess_answer(q['question']).split(' '):
-            if word not in word2index.keys():
-                word2index[word] = index
-                index2word[index] = word
-                index += 1
 
+    # for q in val_question:
+        # for word in preprocess_answer(q['question']).split(' '):
+        #     if word not in word2index.keys():
+        #         word2index[word] = index
+        #         index2word[index] = word
+        #         index += 1
 
 
     if not os.path.exists(f"{cache_root}/"):
@@ -307,12 +310,13 @@ def v2_questions_words_dicts():
     with open(train_question_file) as f:
         train_question = json.load(f)['questions']
 
-    val_question_file = '/datashare/v2_OpenEnded_mscoco_val2014_questions.json'
-    with open(val_question_file) as f:
-        val_question = json.load(f)['questions']
+    questions_data_words_to_indexes(train_question, 'trainval', "data/cache")
 
+    # val_question_file = '/datashare/v2_OpenEnded_mscoco_val2014_questions.json'
+    # with open(val_question_file) as f:
+    #     val_question = json.load(f)['questions']
+    # questions_data_words_to_indexes(train_question, val_question, 'trainval', "data/cache")
 
-    questions_data_words_to_indexes(train_question, val_question, 'trainval', "data/cache")
 
 
 
