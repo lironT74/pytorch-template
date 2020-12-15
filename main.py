@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from utils import main_utils, train_utils
 from utils.train_logger import TrainLogger
 from omegaconf import DictConfig, OmegaConf
+from VQA_model_liron import VQA
 
 
 torch.backends.cudnn.benchmark = True
@@ -34,6 +35,8 @@ def main(cfg: DictConfig) -> None:
     # Load dataset
     # train_dataset = MyDataset(path=cfg['main']['paths']['train'])
     train_dataset = MyDataset(is_Train=True)
+    word_vocab_size = train_dataset.num_of_words
+    num_clases = train_dataset.num_of_labels
 
     # val_dataset = MyDataset(path=cfg['main']['paths']['validation'])
     train_loader = DataLoader(train_dataset, 1, shuffle=True,
@@ -42,7 +45,7 @@ def main(cfg: DictConfig) -> None:
     #                          num_workers=cfg['main']['num_workers'])
 
     # Init model
-    model = MyModel(num_hid=cfg['train']['num_hid'], dropout=cfg['train']['dropout'])
+    model = VQA(word_vocab_size=word_vocab_size, num_classes=num_clases)
 
     # TODO: Add gpus_to_use
     # if cfg['main']['parallel']:

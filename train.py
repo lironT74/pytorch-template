@@ -65,7 +65,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 labels = labels.cuda()
                 scores = scores.cuda()
 
-            y_hat = model(image_tensor, q_words_indexes_tensor)
+            y_hat = model((image_tensor, q_words_indexes_tensor))
 
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]

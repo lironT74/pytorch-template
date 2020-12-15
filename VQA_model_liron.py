@@ -38,17 +38,22 @@ class VQA(nn.Module, metaclass=ABCMeta):
 
 
     def forward(self, input: (Tensor, Tensor)) -> Tensor:
+        print('fuck my dick')
         """
         Forward x through MyModel
         :param x:
         :return:
         """
         image, question = input
+        batch_size = question.shape[0]
+        seq_length = question.shape[1]
 
         # Pass word_idx and pos_idx through their embedding layers
-        word_vec = self.word_embedding(question.to(self.device))        # [batch, seq, emb_dim]
+        word_vec = self.word_embedding(question)        # [batch, seq, emb_dim]
 
-        lstm_output = self.question_model(word_vec)[:, -1]              # [batch, output_dim_nets]
+        print('word embd size:', word_vec.size())
+        print(self.question_model(word_vec).size())
+        lstm_output = self.question_model(word_vec)[range(batch_size), [-1]*seq_length]              # [batch, output_dim_nets]
 
         resnet_output = self.image_model(image)                         # [batch, output_dim_nets]
 
