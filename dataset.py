@@ -69,12 +69,13 @@ class MyDataset(Dataset):
 
 
         self.num_of_words = len(self.words2index)
+        self.num_of_labels = len(self.ans2label)
 
         self.is_Train = is_Train
 
         self.num_features = len(self.all_q_a)
 
-        self._get_features()
+        # self._get_features()
 
         # # Create list of entries
         # self.entries = self._get_entries()
@@ -83,7 +84,7 @@ class MyDataset(Dataset):
 
     def __getitem__(self, index: int) -> Tuple:
 
-        (image_id, question_words_indexes, (label_counts, labels, scores)) = self.all_q_a
+        (image_id, question_words_indexes, (label_counts, labels, scores)) = self.all_q_a[index]
 
 
         the_image_path = f'{self.image_path}COCO_train2014_{str(image_id).zfill(12)}.jpg'
