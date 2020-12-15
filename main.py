@@ -32,20 +32,21 @@ def main(cfg: DictConfig) -> None:
     main_utils.set_seed(cfg['main']['seed'])
 
     # Load dataset
-    train_dataset = MyDataset(path=cfg['main']['paths']['train'])
-    val_dataset = MyDataset(path=cfg['main']['paths']['validation'])
+    # train_dataset = MyDataset(path=cfg['main']['paths']['train'])
+    train_dataset = MyDataset(is_Train=True)
 
-    train_loader = DataLoader(train_dataset, cfg['train']['batch_size'], shuffle=True,
+    # val_dataset = MyDataset(path=cfg['main']['paths']['validation'])
+    train_loader = DataLoader(train_dataset, 1, shuffle=True,
                               num_workers=cfg['main']['num_workers'])
-    eval_loader = DataLoader(val_dataset, cfg['train']['batch_size'], shuffle=True,
-                             num_workers=cfg['main']['num_workers'])
+    # eval_loader = DataLoader(val_dataset, cfg['train']['batch_size'], shuffle=True,
+    #                          num_workers=cfg['main']['num_workers'])
 
     # Init model
     model = MyModel(num_hid=cfg['train']['num_hid'], dropout=cfg['train']['dropout'])
 
     # TODO: Add gpus_to_use
-    if cfg['main']['parallel']:
-        model = torch.nn.DataParallel(model)
+    # if cfg['main']['parallel']:
+    #     model = torch.nn.DataParallel(model)
 
     if torch.cuda.is_available():
         model = model.cuda()
@@ -56,7 +57,7 @@ def main(cfg: DictConfig) -> None:
     train_params = train_utils.get_train_params(cfg)
 
     # Report metrics and hyper parameters to tensorboard
-    metrics = train(model, train_loader, eval_loader, train_params, logger)
+    metrics = train(model, train_loader, None, train_params, logger, cfg['train']['batch_size'])
     hyper_parameters = main_utils.get_flatten_dict(cfg['train'])
 
     logger.report_metrics_hyper_params(hyper_parameters, metrics)
