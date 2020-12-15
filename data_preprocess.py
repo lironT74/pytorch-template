@@ -136,21 +136,29 @@ def preprocess_answer(answer):
 def filter_answers(answers_dset, min_occurence):
     """This will change the answer to preprocessed version
     """
+
     occurence = {}
+
     for ans_entry in answers_dset:
+
         gtruth = ans_entry['multiple_choice_answer']
         gtruth = preprocess_answer(gtruth)
+
         if gtruth not in occurence:
             occurence[gtruth] = set()
+
         occurence[gtruth].add(ans_entry['question_id'])
 
+
+    new_occurunces = {}
     for answer in list(occurence.keys()):
-        if len(occurence[answer]) < min_occurence:
-            occurence.pop(answer)
+        if not len(occurence[answer]) < min_occurence:
+            new_occurunces[answer] = occurence[answer]
 
     print('Num of answers that appear >= %d times: %d' % (
-        min_occurence, len(occurence)))
-    return occurence
+        min_occurence, len(new_occurunces)))
+
+    return new_occurunces
 
 
 def create_ans2label(occurence, name, cache_root):
@@ -190,12 +198,20 @@ def compute_target(answers_dset, ans2label, name, cache_root):
     Write result into a cache file
     """
     target = []
+
+    scores_0  = 0
     for ans_entry in answers_dset:
         answers = ans_entry['answers']
+
         answer_count = {}
         for answer in answers:
+
             answer_ = answer['answer']
+
+            answer_ = preprocess_answer(answer_)
+
             answer_count[answer_] = answer_count.get(answer_, 0) + 1
+
 
         labels = []
         scores = []
@@ -205,13 +221,17 @@ def compute_target(answers_dset, ans2label, name, cache_root):
             labels.append(ans2label[answer])
             score = get_score(answer_count[answer])
             scores.append(score)
+
+
         if len(scores) == 0:
-            print('we are in trouble')
+            scores_0 += 1
+
 
         label_counts = {}
         for k, v in answer_count.items():
             if k in ans2label:
                 label_counts[ans2label[k]] = v
+
 
         target.append({
             'question_id': ans_entry['question_id'],
@@ -221,6 +241,8 @@ def compute_target(answers_dset, ans2label, name, cache_root):
             'labels': labels,
             'scores': scores
         })
+
+    print(f"zero scores {scores_0}")
 
     print(cache_root)
     # utils.create_dir(cache_root)
@@ -233,6 +255,7 @@ def compute_target(answers_dset, ans2label, name, cache_root):
     with open(cache_file, 'wb') as f:
       pickle.dump(target, f)
     return target
+
 
 
 def get_answer(qid, answers):
@@ -258,10 +281,15 @@ def load_v2_answers():
         val_answers = json.load(f)['annotations']
 
 
+
     occurence = filter_answers(train_answers, 6)
+
     ans2label = create_ans2label(occurence, 'trainval', "data/cache")
+
     print('train')
+
     compute_target(train_answers, ans2label, 'train', "data/cache")
+
     print('val')
     compute_target(val_answers, ans2label, 'val', "data/cache")
 
@@ -325,7 +353,7 @@ def v2_questions_words_dicts():
 
 
 def main():
-    # v2_questions_words_dicts()
+    v2_questions_words_dicts()
     load_v2_answers()
 
 

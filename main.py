@@ -33,17 +33,15 @@ def main(cfg: DictConfig) -> None:
     main_utils.set_seed(cfg['main']['seed'])
 
     # Load dataset
-    # train_dataset = MyDataset(path=cfg['main']['paths']['train'])
+    val_dataset = MyDataset(is_Train=False)
     train_dataset = MyDataset(is_Train=True)
     word_vocab_size = train_dataset.num_of_words
     num_clases = train_dataset.num_of_labels
-    print(train_dataset.label2ans[3])
 
-    # val_dataset = MyDataset(path=cfg['main']['paths']['validation'])
+    eval_loader = DataLoader(val_dataset, 1, shuffle=False,
+                              num_workers=cfg['main']['num_workers'])
     train_loader = DataLoader(train_dataset, 1, shuffle=True,
                               num_workers=cfg['main']['num_workers'])
-    # eval_loader = DataLoader(val_dataset, cfg['train']['batch_size'], shuffle=True,
-    #                          num_workers=cfg['main']['num_workers'])
 
     # Init model
     model = VQA(word_vocab_size=word_vocab_size, num_classes=num_clases)
@@ -61,7 +59,7 @@ def main(cfg: DictConfig) -> None:
     train_params = train_utils.get_train_params(cfg)
 
     # Report metrics and hyper parameters to tensorboard
-    metrics = train(model, train_loader, None, train_params, logger, cfg['train']['batch_size'])
+    metrics = train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
     hyper_parameters = main_utils.get_flatten_dict(cfg['train'])
 
     logger.report_metrics_hyper_params(hyper_parameters, metrics)

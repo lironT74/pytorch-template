@@ -1,0 +1,5 @@
+
+ssh -N -f -L localhost:16006:127.0.0.1:6006 student@dl2020w-0013.eastus.cloudapp.azure.com
+
+
+tensorboard --logdir /home/student/HW2/logs/tensorboard --samples_per_plugin images=1000,text=80000,scalars=80000 --port 6006

@@ -32,7 +32,7 @@ class MyDataset(Dataset):
     """
     Custom dataset template. Implement the empty functions.
     """
-    def __init__(self, is_Train: bool) -> None:
+    def __init__(self, is_Train: bool, is_pre = False) -> None:
         if is_Train:
             self.q_path = '/datashare/v2_OpenEnded_mscoco_train2014_questions.json'
             self.ann_path = '/home/student/HW2/data/cache/train_target.pkl'
@@ -64,8 +64,9 @@ class MyDataset(Dataset):
             self.target_labels = pickle.load(f)
 
 
-        with open(self.all_q_a_path, 'rb') as f:
-            self.all_q_a = pickle.load(f)
+        if not is_pre:
+            with open(self.all_q_a_path, 'rb') as f:
+                self.all_q_a = pickle.load(f)
 
 
         self.num_of_words = len(self.words2index)
@@ -73,9 +74,11 @@ class MyDataset(Dataset):
 
         self.is_Train = is_Train
 
-        self.num_features = len(self.all_q_a)
+        if not is_pre:
+            self.num_features = len(self.all_q_a)
+        else:
+            self._get_features()
 
-        self._get_features()
 
         # # Create list of entries
         # self.entries = self._get_entries()
@@ -86,8 +89,11 @@ class MyDataset(Dataset):
 
         (image_id, question_words_indexes, (label_counts, labels, scores)) = self.all_q_a[index]
 
+        if self.is_Train:
+            the_image_path = f'{self.image_path}COCO_train2014_{str(image_id).zfill(12)}.jpg'
+        else:
+            the_image_path = f'{self.image_path}COCO_val2014_{str(image_id).zfill(12)}.jpg'
 
-        the_image_path = f'{self.image_path}COCO_train2014_{str(image_id).zfill(12)}.jpg'
 
         image = Image.open(the_image_path)
         image_tensor = transforms.ToTensor()(image).unsqueeze(0)  # unsqueeze to add artificial first dimension
@@ -96,9 +102,9 @@ class MyDataset(Dataset):
             image_tensor = image_tensor.squeeze()
             image_tensor = torch.stack([image_tensor, image_tensor, image_tensor])
             image_tensor = image_tensor.unsqueeze(0)
-        if len(scores) == 0:
-            print('len scores is 0 in getitem')
-            print((image_tensor, question_words_indexes), (label_counts, labels, scores))
+        # if len(scores) == 0:
+        #     print('len scores is 0 in getitem')
+        #     print((image_tensor, question_words_indexes), (label_counts, labels, scores))
 
         return (image_tensor, question_words_indexes), (label_counts, labels, scores)
 
@@ -147,8 +153,7 @@ class MyDataset(Dataset):
         for target in self.target_labels:
 
             label_counts, labels, scores = target['label_counts'], target['labels'], target['scores']
-            if len(scores) == 0:
-                print(target['label_counts'], target['labels'], target['scores'])
+
             questions_answers_by_image_id[target['image_id']] = (label_counts, torch.tensor(labels), torch.tensor(scores))
 
 
@@ -157,10 +162,16 @@ class MyDataset(Dataset):
 
             question_words_indexes = questions_words_indexes_by_image_id[image_id]
             label_counts, labels, scores = questions_answers_by_image_id[image_id]
-            # if len(scores) == 0:
-            #     print((image_id, question_words_indexes, (label_counts, labels, scores)))
-            all_q_and_a.append((image_id, question_words_indexes, (label_counts, labels, scores)))
 
+
+            if self.is_Train:
+                if len(labels) > 0:
+                    all_q_and_a.append((image_id, question_words_indexes, (label_counts, labels, scores)))
+            else:
+                all_q_and_a.append((image_id, question_words_indexes, (label_counts, labels, scores)))
+
+
+        print(f"{len(all_q_and_a)} examples")
 
         if self.is_Train:
             with open(f'/home/student/HW2/data/data_batches_train.pkl', 'wb') as f:
@@ -239,6 +250,6 @@ class MyDataset(Dataset):
 
 
 if __name__ == '__main__':
-    dataset_train = MyDataset(is_Train=True)
-    dataset_val = MyDataset(is_Train=False)
+    dataset_train = MyDataset(is_Train=True, is_pre=True)
+    dataset_val = MyDataset(is_Train=False, is_pre=True)
 

@@ -37,6 +37,11 @@ class TrainLogger:
         tensorboard_path = os.path.join(logs_dir, 'tensorboard', self.exp_name)
         self.tensorboard_writer = SummaryWriter(tensorboard_path)
 
+        self.tensorboard_writer_train = SummaryWriter(tensorboard_path + "_train")
+        self.tensorboard_writer_val = SummaryWriter(tensorboard_path+ "_val")
+
+
+
         # Init console and file logger
         self.logger = self._init_logger(self.exp_dir, self.exp_name)
 
@@ -139,14 +144,25 @@ class TrainLogger:
 
         return _logger
 
-    def report_scalars(self, scalars, epoch):
+    def report_scalars(self, scalars, epoch, separated=False):
         """
         Report batch of scalars
+        :param separeted:
         :param scalars: {scalar_key: scalar_value}. For instance: {'Accuracy_train': 99.32}
         :param epoch:
         """
-        for scalar, scalar_value in scalars.items():
-            self.report_scalar(scalar, scalar_value, epoch)
+        if separated:
+            for scalar, scalar_value in scalars.items():
+                self.report_scalar(scalar, scalar_value, epoch)
+        else:
+
+            self.tensorboard_writer_train.add_scalar('Loss', scalars['Loss/Train'], epoch)
+            self.tensorboard_writer_train.add_scalar('Accuracy', scalars['Accuracy/Train'], epoch)
+
+            self.tensorboard_writer_val.add_scalar('Loss', scalars['Loss/Train'], epoch)
+            self.tensorboard_writer_val.add_scalar('Accuracy', scalars['Accuracy/Train'], epoch)
+
+
 
     def write_epoch_statistics(self, epoch: int, epoch_time: float, train_loss: float, norm: float,
                                train_score: float, eval_score: float) -> None:
