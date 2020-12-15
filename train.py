@@ -94,7 +94,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
             if i % batch_size == 0 or i == len(train_loader) - 1:
 
                 print(f'Epoch: {epoch+1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
-
+                batch_counter += 1
                 optimizer.step()
                 optimizer.zero_grad()
 
