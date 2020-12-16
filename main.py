@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from utils import main_utils, train_utils
 from utils.train_logger import TrainLogger
 from omegaconf import DictConfig, OmegaConf
-from VQA_model_liron import VQA
+from VQA_model_first import VQA
 
 
 torch.backends.cudnn.benchmark = True
