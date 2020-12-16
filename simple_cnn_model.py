@@ -20,8 +20,17 @@ class SimpleCNNModel(nn.Module):
 
 
     def forward(self, x):
-        x = self.pool(self.relu(self.conv1(x)))
+
+        x = self.conv1(x)
+
+        x = self.relu(x)
+
+        x = self.pool(x)
+
         x = self.pool_avg_pool(self.relu(self.conv2(x)))
+
         x = x.view(-1, self.fc_dimension)
-        x = self.relu(self.fc(x))
+
+        x = self.relu(self.fc1(x))
+
         return x

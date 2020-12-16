@@ -70,9 +70,7 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
 
         fc_output = self.fc(mutual)                                         # [batch, num_classes]
 
-        return self.log_softmax(self.relu(fc_output))
+        fc_output = self.relu(fc_output)                                     # [batch, num_classes]
 
+        return self.log_softmax(fc_output)
 
-
-if __name__ == '__main__':
-    VQA()

@@ -5,6 +5,7 @@ from simple_cnn_model import SimpleCNNModel
 from resnet import resnet18
 from LSTM_question_model import LSTM
 
+from models.base_model import FCNet
 
 
 
@@ -34,8 +35,8 @@ class VQA(nn.Module, metaclass=ABCMeta):
                                bidirectional=True,
                                batch_first=True)
 
-        self.fc = nn.Linear(output_dim_nets, num_classes)
 
+        self.fc1 = nn.Linear(output_dim_nets, num_classes)
         self.relu = nn.ReLU()
 
         self.log_softmax = nn.LogSoftmax(dim=1)
@@ -62,11 +63,13 @@ class VQA(nn.Module, metaclass=ABCMeta):
         image = image.squeeze(0)
         resnet_output = self.image_model(image)                             # [batch, output_dim_nets]
 
+
         mutual = h_n_lstm * resnet_output                                   # [batch, output_dim_nets]
 
-        fc_output = self.fc(mutual)                                         # [batch, num_classes]
+        fc_output = self.fc1(mutual)                                         # [batch, num_classes]
+        fc_output = self.relu(fc_output)                                     # [batch, num_classes]
 
-        return self.log_softmax(self.relu(fc_output))
+        return self.log_softmax(fc_output)
 
 
 
