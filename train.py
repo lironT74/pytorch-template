@@ -74,6 +74,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
         print(f"Epoch: {epoch+1}  ({cur_time()})")
         batch_counter = 1
         for i, (x, y) in enumerate(train_loader):
+
             # print(f'Epoch: {epoch+1}, Image {i+1}/{len(train_loader)}')
             image_tensor, q_words_indexes_tensor = x
             label_counts, labels, scores = y
@@ -169,23 +170,26 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
         image_tensor, q_words_indexes_tensor = x
         label_counts, labels, scores = y
 
-        if len(scores) == 0:
-            score += 0
-            lost_counter += 1
-            continue
-
 
         if torch.cuda.is_available():
             image_tensor = image_tensor.cuda()
             q_words_indexes_tensor = q_words_indexes_tensor.cuda()
             labels = labels.cuda()
+            scores = scores.cuda()
 
+
+        if scores.nelement() == 0:
+            score += 0
+            lost_counter += 1
+            continue
 
 
         y_hat = model((image_tensor, q_words_indexes_tensor))
         y_hat_index = torch.argmax(y_hat, dim=1).item()
 
+
         y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
+
         y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
         loss += criterion(y_hat, y_multiple_choice_answers).item()
