@@ -85,12 +85,14 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 scores = scores.cuda()
 
             y_hat = model((image_tensor, q_words_indexes_tensor))
-
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
-            loss = criterion(y_hat, y_multiple_choice_answers)
+            loss = criterion(y_hat, y_multiple_choice_answers) / batch_size
+
+
             loss.backward()
+
             if i % batch_size == 0 or i == len(train_loader) - 1:
 
                 print(f'Epoch: {epoch+1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
@@ -98,9 +100,11 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 optimizer.step()
                 optimizer.zero_grad()
 
+
             # Calculate metrics
             metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
             metrics['count_norm'] += 1
+
 
             # NOTE! This function compute scores correctly only for one hot encoding representation of the logits
             # batch_score = train_utils.compute_score_with_logits(y_hat, y.data).sum()
@@ -109,6 +113,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 metrics['train_score'] += 0
             else:
                 metrics['train_score'] += get_score(label_counts[y_hat_index]) / len(train_loader)
+
 
             metrics['train_loss'] += loss.item()
 
@@ -169,26 +174,32 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
             lost_counter += 1
             continue
 
+
         if torch.cuda.is_available():
             image_tensor = image_tensor.cuda()
             q_words_indexes_tensor = q_words_indexes_tensor.cuda()
             labels = labels.cuda()
 
-        y_hat = model((image_tensor, q_words_indexes_tensor))
 
+
+        y_hat = model((image_tensor, q_words_indexes_tensor))
         y_hat_index = torch.argmax(y_hat, dim=1).item()
+
+        y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
+        y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
+
+        loss += criterion(y_hat, y_multiple_choice_answers).item()
+
 
 
         if y_hat_index not in label_counts:
             score += 0
         else:
-            y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
-            y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
-            loss += criterion(y_hat, y_multiple_choice_answers).item()
             score += get_score(label_counts[y_hat_index])
 
         if i % 8000 == 0 or i == len(dataloader) - 1:
             print(f'Evaluation at example #{i+1} ({cur_time()})')
+
 
         # TODO: change it
         # if i > 48:

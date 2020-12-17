@@ -67,11 +67,9 @@ class VQA(nn.Module, metaclass=ABCMeta):
         mutual = h_n_lstm * resnet_output                                   # [batch, output_dim_nets]
 
         fc_output = self.fc1(mutual)                                         # [batch, num_classes]
-        fc_output = self.relu(fc_output)                                     # [batch, num_classes]
 
-        return self.log_softmax(fc_output)
+        fc_output_relu = self.relu(fc_output)                                     # [batch, num_classes]
+
+        return self.log_softmax(fc_output_relu)
 
 
-
-if __name__ == '__main__':
-    VQA()

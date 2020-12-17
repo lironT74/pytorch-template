@@ -14,7 +14,7 @@ from utils import main_utils, train_utils
 from utils.train_logger import TrainLogger
 from omegaconf import DictConfig, OmegaConf
 from VQA_model_first import VQA
-
+from VQA_model_attention import VQA_Attention
 
 torch.backends.cudnn.benchmark = True
 
@@ -44,7 +44,10 @@ def main(cfg: DictConfig) -> None:
                               num_workers=cfg['main']['num_workers'])
 
     # Init model
-    model = VQA(word_vocab_size=word_vocab_size, num_classes=num_clases)
+
+    # model = VQA(word_vocab_size=word_vocab_size, num_classes=num_clases)
+    model = VQA_Attention(word_vocab_size=word_vocab_size, num_classes=num_clases)
+
 
     # TODO: Add gpus_to_use
     # if cfg['main']['parallel']:

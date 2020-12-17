@@ -39,6 +39,7 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
 
         self.soft_max = nn.Softmax(dim=1)
 
+
     def forward(self, input: (Tensor, Tensor)) -> Tensor:
         """
         Forward x through MyModel
@@ -52,25 +53,36 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
         # Pass word_idx and pos_idx through their embedding layers
         word_vec = self.word_embedding(question)        # [batch, seq, emb_dim]
 
-        output_lstm, (_, _) = self.question_model(word_vec)
-
-        output_lstm = output_lstm.view(self.LSTM_num_layers, batch_size, seq_length, -1)[-1]  # [batch, seq_length, output_dim_nets]
+        output_lstm, (_, _) = self.question_model(word_vec)                # [batch_size, seq_len, output_dim_nets]
+        # print(output_lstm.shape)
 
         image = image.squeeze(0)
+        # print(image.shape)
 
         cnn_output = self.image_model(image)                                # [batch, output_dim_nets]
+        # print(cnn_output.shape)
 
-        attention = torch.matmul(output_lstm, cnn_output)                   # [batch, seq_length]
+        cnn_output = cnn_output.unsqueeze(-1)                               # [batch, output_dim_nets, 1]
+        # print(cnn_output.shape)
+
+        attention = torch.matmul(output_lstm, cnn_output).squeeze(-1)       # [batch, seq_length]
+        # print(attention.shape)
 
         scalars = self.soft_max(attention)                                  # [batch, seq_length]
+        # print(scalars.shape)
 
-        lstm_to_multuplucation = torch.matmul(scalars, output_lstm)         # [batch, output_dim_nets]
+        lstm_to_multiplication = torch.matmul(scalars, output_lstm).squeeze(1)  # [batch, output_dim_nets]
+        # print(lstm_to_multiplication.shape)
 
-        mutual = lstm_to_multuplucation * cnn_output                        # [batch, output_dim_nets]
+        mutual = lstm_to_multiplication * cnn_output.squeeze(-1)            # [batch, output_dim_nets]
+        # print(mutual.shape)
 
         fc_output = self.fc(mutual)                                         # [batch, num_classes]
+        # print(fc_output.shape)
 
-        fc_output = self.relu(fc_output)                                     # [batch, num_classes]
+        fc_output_relu = self.relu(fc_output)                               # [batch, num_classes]
+        # print(fc_output_relu.shape)
 
-        return self.log_softmax(fc_output)
+
+        return self.log_softmax(fc_output_relu)
 
