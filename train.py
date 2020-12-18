@@ -48,6 +48,16 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
     :param logger:
     :return:
     """
+
+    # for i, (x,y) in enumerate(train_loader):
+    #     print(f'Liron homo #{i+1} ({cur_time()})')
+    #     image_tensor, q_words_indexes_tensor = x
+    #     label_counts, labels, scores = y
+    #     assert len(labels) > 0, "Labels is empty"
+    #     assert len(scores) > 0, 'Scores is empty'
+
+
+
     metrics = train_utils.get_zeroed_metrics_dict()
     best_eval_score = 0
 
@@ -58,21 +68,19 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=train_params.lr_step_size,
                                                 gamma=train_params.lr_gamma)
-
     criterion = nn.NLLLoss()
-    # for i, (x,y) in enumerate(train_loader):
-    #     print(f'Liron homo #{i+1} ({cur_time()})')
-    #     image_tensor, q_words_indexes_tensor = x
-    #     label_counts, labels, scores = y
-    #     assert len(labels) > 0, "Labels is empty"
-    #     assert len(scores) > 0, 'Scores is empty'
+
 
     for epoch in tqdm(range(train_params.num_epochs)):
+
+
         t = time.time()
         metrics = train_utils.get_zeroed_metrics_dict()
         optimizer.zero_grad()
         print(f"Epoch: {epoch+1}  ({cur_time()})")
         batch_counter = 1
+
+
         for i, (x, y) in enumerate(train_loader):
 
             # print(f'Epoch: {epoch+1}, Image {i+1}/{len(train_loader)}')
@@ -90,21 +98,21 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
             loss = criterion(y_hat, y_multiple_choice_answers) / batch_size
-
-
             loss.backward()
 
             if i % batch_size == 0 or i == len(train_loader) - 1:
-
                 print(f'Epoch: {epoch+1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
                 batch_counter += 1
+
+                # Calculate metrics
+                metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
+                metrics['count_norm'] += 1
+
                 optimizer.step()
                 optimizer.zero_grad()
 
 
-            # Calculate metrics
-            metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
-            metrics['count_norm'] += 1
+            metrics['train_loss'] += loss.item()
 
 
             # NOTE! This function compute scores correctly only for one hot encoding representation of the logits
@@ -116,20 +124,19 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 metrics['train_score'] += get_score(label_counts[y_hat_index]) / len(train_loader)
 
 
-            metrics['train_loss'] += loss.item()
 
-            # if i > 98:
-            #     break
         # Learning rate scheduler step
         scheduler.step()
 
+
         # Calculate metrics
-        metrics['train_loss'] /= len(train_loader)
+        metrics['train_loss'] = batch_size*(metrics['train_loss']/len(train_loader))
+
 
         norm = metrics['total_norm'] / metrics['count_norm']
 
+
         model.train(False)
-        # Loss is not relevant, so we put it 0
         metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader, criterion)
         model.train(True)
 
@@ -137,13 +144,15 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
         logger.write_epoch_statistics(epoch, epoch_time, metrics['train_loss'], norm,
                                       metrics['train_score'], metrics['eval_score'], metrics['eval_loss'])
 
+
         scalars = {'Accuracy/Train': metrics['train_score'],
                    'Accuracy/Validation': metrics['eval_score'],
                    'Loss/Train': metrics['train_loss'],
                    'Loss/Validation': metrics['eval_loss']}
-        # print(scalars)
+
 
         logger.report_scalars(scalars, epoch, separated=False)
+
 
         if metrics['eval_score'] > best_eval_score:
             best_eval_score = metrics['eval_score']
@@ -205,20 +214,10 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
             print(f'Evaluation at example #{i+1} ({cur_time()})')
 
 
-        # TODO: change it
-        # if i > 48:
-        #     break
-    # print(f'Lost {lost_counter} items')
+    score = score / (len(dataloader))
 
-    # TODO: change it in places
-    score /= len(dataloader)
-    loss /= len(dataloader) - lost_counter
+    loss = loss / (len(dataloader) - lost_counter)
 
-    #
-    # score /= 50
-    # loss /= 50 - lost_counter
-
-
-    # score *= 100
+    print(f"lost counter = {lost_counter} (data sizer: {len(dataloader)}")
 
     return score, loss

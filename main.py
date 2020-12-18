@@ -38,9 +38,9 @@ def main(cfg: DictConfig) -> None:
     word_vocab_size = train_dataset.num_of_words
     num_clases = train_dataset.num_of_labels
 
-    eval_loader = DataLoader(val_dataset, 1, shuffle=False,
+    eval_loader = DataLoader(val_dataset, batch_size=1, shuffle=False,
                               num_workers=cfg['main']['num_workers'])
-    train_loader = DataLoader(train_dataset, 1, shuffle=True,
+    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True,
                               num_workers=cfg['main']['num_workers'])
 
     # Init model
