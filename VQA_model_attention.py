@@ -27,6 +27,7 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
 
         self.LSTM_num_layers = LSTM_num_layers
 
+
         self.question_model = nn.LSTM(input_size=word_emb_dim, hidden_size=output_dim_nets//2, num_layers=LSTM_num_layers,
                                bidirectional=True,
                                batch_first=True)

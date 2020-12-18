@@ -94,11 +94,29 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 scores = scores.cuda()
 
             y_hat = model((image_tensor, q_words_indexes_tensor))
-            y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
-            y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
-            loss = criterion(y_hat, y_multiple_choice_answers) / batch_size
+            losses = []
+            num_of_answers = sum(label_counts.values())
+            for label, count in label_counts.items():
+
+                if torch.cuda.is_available():
+                    label_tensor = torch.tensor([[label]]).cuda()
+                else:
+                    label_tensor = torch.tensor([[label]])
+
+                cur_loss = criterion(y_hat, label_tensor)
+
+                cur_loss = cur_loss * (count/num_of_answers)
+
+                losses.append(cur_loss)
+
+                # cur_loss = cur_loss / batch_size
+                # cur_loss.backward()
+
+            loss = sum(losses)
+            loss = loss / batch_size
             loss.backward()
+
 
             if i % batch_size == 0 or i == len(train_loader) - 1:
                 print(f'Epoch: {epoch+1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
@@ -110,6 +128,8 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
                 optimizer.step()
                 optimizer.zero_grad()
+
+
 
 
             metrics['train_loss'] += loss.item()
@@ -163,6 +183,10 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
     return get_metrics(best_eval_score, metrics['eval_score'], metrics['train_loss'])
 
 
+
+
+
+
 @torch.no_grad()
 def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
     """
@@ -196,12 +220,31 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
         y_hat = model((image_tensor, q_words_indexes_tensor))
         y_hat_index = torch.argmax(y_hat, dim=1).item()
 
+        losses = []
+        num_of_answers = sum(label_counts.values())
+        for label, count in label_counts.items():
 
-        y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
+            if torch.cuda.is_available():
+                label_tensor = torch.tensor([[label]]).cuda()
+            else:
+                label_tensor = torch.tensor([[label]])
 
-        y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
+            cur_loss = criterion(y_hat, label_tensor)
 
-        loss += criterion(y_hat, y_multiple_choice_answers).item()
+            cur_loss = cur_loss * (count / num_of_answers)
+
+            losses.append(cur_loss)
+
+            # cur_loss = cur_loss / batch_size
+            # cur_loss.backward()
+
+        loss = sum(losses)
+
+        # y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
+        #
+        # y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
+        #
+        # loss += criterion(y_hat, y_multiple_choice_answers).item()
 
 
 
