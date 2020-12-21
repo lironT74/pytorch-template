@@ -7,6 +7,7 @@ import torch
 import hydra
 
 from train import train
+from train_special_loss import train_special_loss
 from dataset import MyDataset
 from models.base_model import MyModel
 from torch.utils.data import DataLoader
@@ -62,7 +63,10 @@ def main(cfg: DictConfig) -> None:
     train_params = train_utils.get_train_params(cfg)
 
     # Report metrics and hyper parameters to tensorboard
-    metrics = train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
+
+    # metrics = train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
+    metrics = train_special_loss(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
+
     hyper_parameters = main_utils.get_flatten_dict(cfg['train'])
 
     logger.report_metrics_hyper_params(hyper_parameters, metrics)

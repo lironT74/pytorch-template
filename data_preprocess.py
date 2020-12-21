@@ -218,6 +218,7 @@ def compute_target(answers_dset, ans2label, name, cache_root):
         for answer in answer_count:
             if answer not in ans2label:
                 continue
+
             labels.append(ans2label[answer])
             score = get_score(answer_count[answer])
             scores.append(score)

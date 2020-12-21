@@ -93,12 +93,17 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 labels = labels.cuda()
                 scores = scores.cuda()
 
+
+
             y_hat = model((image_tensor, q_words_indexes_tensor))
+
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
             loss = criterion(y_hat, y_multiple_choice_answers) / batch_size
             loss.backward()
+
+
 
             if i % batch_size == 0 or i == len(train_loader) - 1:
                 print(f'Epoch: {epoch+1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
@@ -114,10 +119,10 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
             metrics['train_loss'] += loss.item()
 
-
             # NOTE! This function compute scores correctly only for one hot encoding representation of the logits
             # batch_score = train_utils.compute_score_with_logits(y_hat, y.data).sum()
             y_hat_index = torch.argmax(y_hat, dim=1).item()
+
             if y_hat_index not in label_counts:
                 metrics['train_score'] += 0
             else:
