@@ -104,7 +104,6 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
             loss.backward()
 
 
-
             if i % batch_size == 0 or i == len(train_loader) - 1:
                 print(f'Epoch: {epoch+1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
                 batch_counter += 1
@@ -207,7 +206,6 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
         y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
         loss += criterion(y_hat, y_multiple_choice_answers).item()
-
 
 
         if y_hat_index not in label_counts:

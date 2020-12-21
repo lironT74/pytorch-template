@@ -238,20 +238,12 @@ def evaluate_special_loss(model: nn.Module, dataloader: DataLoader, criterion) -
             cur_loss = criterion(y_hat, label_tensor)
 
             cur_loss = cur_loss * (count / num_of_answers)
-
             losses.append(cur_loss)
 
             # cur_loss = cur_loss / batch_size
             # cur_loss.backward()
 
-        loss = sum(losses)
-
-        # y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
-        #
-        # y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
-        #
-        # loss += criterion(y_hat, y_multiple_choice_answers).item()
-
+        loss += sum(losses)
 
 
         if y_hat_index not in label_counts:
