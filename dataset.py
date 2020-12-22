@@ -90,21 +90,10 @@ class MyDataset(Dataset):
         (image_id, question_words_indexes, (label_counts, labels, scores)) = self.all_q_a[index]
 
         if self.is_Train:
-            the_image_path = f'{self.image_path}COCO_train2014_{str(image_id).zfill(12)}.jpg'
+            image_tensor = torch.load(f"/home/student/HW2/data/train_tensors/COCO_train2014_{str(image_id).zfill(12)}_tensor")
+
         else:
-            the_image_path = f'{self.image_path}COCO_val2014_{str(image_id).zfill(12)}.jpg'
-
-
-        image = Image.open(the_image_path)
-        image_tensor = transforms.ToTensor()(image).unsqueeze(0)  # unsqueeze to add artificial first dimension
-
-        if image_tensor.shape[1] == 1:
-            image_tensor = image_tensor.squeeze()
-            image_tensor = torch.stack([image_tensor, image_tensor, image_tensor])
-            image_tensor = image_tensor.unsqueeze(0)
-        # if len(scores) == 0:
-        #     print('len scores is 0 in getitem')
-        #     print((image_tensor, question_words_indexes), (label_counts, labels, scores))
+            image_tensor = torch.load(f"/home/student/HW2/data/train_tensors/COCO_val2014_{str(image_id).zfill(12)}_tensor")
 
         return (image_tensor, question_words_indexes), (label_counts, labels, scores)
 
@@ -130,7 +119,7 @@ class MyDataset(Dataset):
             questions = json.load(q_file)['questions']
 
 
-        # Make dictionary of questions by image id
+        # Make dictionary of questions by image_path id
         questions_words_indexes_by_image_id = {}
 
         for q in questions:
@@ -192,8 +181,8 @@ class MyDataset(Dataset):
         #     if isfile(join(self.image_path, f)):
         #
         #         image_id = int(f.split('_')[-1].split('.')[0])
-        #         image = Image.open(f'{self.image_path}/{f}')
-        #         image_tensor = transforms.ToTensor()(image).unsqueeze(0)  # unsqueeze to add artificial first dimension
+        #         image_path = Image.open(f'{self.image_path}/{f}')
+        #         image_tensor = transforms.ToTensor()(image_path).unsqueeze(0)  # unsqueeze to add artificial first dimension
         #
         #         if image_tensor.shape[1] == 1:
         #             image_tensor = image_tensor.squeeze()

@@ -4,6 +4,7 @@ from torch import nn, Tensor
 from simple_cnn_model import SimpleCNNModel
 from resnet import resnet18
 from LSTM_question_model import LSTM
+from VGG19_A import VGG19_A
 import torch
 
 
@@ -13,20 +14,19 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
     """
     def __init__(self, output_dim_nets: int = 1024,
                  word_vocab_size: int = 100000,
-                 word_emb_dim: int = 100,
+                 word_emb_dim: int = 50,
                  num_classes: int = 3219,
-                 LSTM_num_layers: int = 4):
+                 LSTM_num_layers: int = 2):
 
         super(VQA_Attention, self).__init__()
 
         # self.image_model = resnet18(3, output_dim_nets)
 
-        self.image_model = SimpleCNNModel(3, 16, output_dim_nets)
+        self.image_model = VGG19_A(3, output_dim_nets)
 
         self.word_embedding = nn.Embedding(num_embeddings=word_vocab_size, embedding_dim=word_emb_dim)
 
         self.LSTM_num_layers = LSTM_num_layers
-
 
         self.question_model = nn.LSTM(input_size=word_emb_dim, hidden_size=output_dim_nets//2, num_layers=LSTM_num_layers,
                                bidirectional=True,
@@ -58,7 +58,7 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
         # print(output_lstm.shape)
 
         image = image.squeeze(0)
-        # print(image.shape)
+        # print(image_path.shape)
 
         cnn_output = self.image_model(image)                                # [batch, output_dim_nets]
         # print(cnn_output.shape)
