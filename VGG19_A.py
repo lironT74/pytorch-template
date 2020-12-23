@@ -3,7 +3,7 @@ import torch
 from models.base_model import FCNet
 
 class VGG19_A(nn.Module):
-    def __init__(self, in_channels, output_dimension):
+    def __init__(self, in_channels, output_dimension, return_before_fc=False):
         super(VGG19_A, self).__init__()
 
         self.output_dimension = output_dimension
@@ -31,6 +31,7 @@ class VGG19_A(nn.Module):
         self.fc3 = nn.Linear(self.inner_fc_dim, self.output_dimension)
 
         self.relu = nn.ReLU()
+        self.return_before_fc = return_before_fc
 
     def forward(self, x):
 
@@ -60,6 +61,8 @@ class VGG19_A(nn.Module):
         x = self.relu(x)
         x = self.pool(x)
 
+        x_before_fc = x
+
         x = torch.flatten(x, start_dim=1)
 
         x = self.fc1(x)
@@ -71,4 +74,7 @@ class VGG19_A(nn.Module):
         x = self.fc3(x)
         x = self.relu(x)
 
-        return x
+        if self.return_before_fc:
+            return x, x_before_fc
+        else:
+            return x
