@@ -17,6 +17,9 @@ from utils.train_logger import TrainLogger
 from omegaconf import DictConfig, OmegaConf
 from VQA_model_first import VQA
 from VQA_model_attention import VQA_Attention
+from torchvision import models, transforms
+from PIL import Image
+from multiprocessing import Pool
 
 torch.backends.cudnn.benchmark = True
 
@@ -65,31 +68,45 @@ def main(cfg: DictConfig) -> None:
 
     # Report metrics and hyper parameters to tensorboard
 
-    # metrics = train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
-    metrics = train_special_loss(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
+    metrics = train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
+    # metrics = train_special_loss(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
 
     hyper_parameters = main_utils.get_flatten_dict(cfg['train'])
 
     logger.report_metrics_hyper_params(hyper_parameters, metrics)
 
 
+
+
+def save_images_aux(image_path):
+
+    print(image_path)
+
+    image = Image.open('/datashare/train2014/' + image_path)
+    # image_tensor = transforms.ToTensor()(image_path)  # unsqueeze to add artificial first dimension
+    image = transforms.Resize((224, 224))(image)
+    image_tensor = transforms.ToTensor()(image).unsqueeze(0)
+
+    if image_tensor.shape[1] == 1:
+        image_tensor = image_tensor.squeeze()
+        image_tensor = torch.stack([image_tensor, image_tensor, image_tensor])
+        image_tensor = image_tensor.unsqueeze(0)
+
+    torch.save(image_tensor, "/home/student/HW2/data/train_tensors/" + image_path[:-4] + "_tensor")
+
+
 if __name__ == '__main__':
     main()
 
-    # from torchvision import models, transforms
-    # from PIL import Image
+
+    # jobs = []
+    # for image_path in os.listdir('/datashare/train2014/'):
+    #     if os.path.exists("/home/student/HW2/data/train_tensors/" + image_path[:-4] + "_tensor"):
+    #         continue
+    #     jobs.append(image_path)
     #
-    # for image_path in os.listdir('/datashare/val2014/'):
-    #     print(image_path)
-    #     image = Image.open('/datashare/val2014/' + image_path)
-    #     # image_tensor = transforms.ToTensor()(image_path)  # unsqueeze to add artificial first dimension
-    #     image = transforms.Resize((224, 224))(image)
-    #     image_tensor = transforms.ToTensor()(image).unsqueeze(0)
-    #
-    #     if image_tensor.shape[1] == 1:
-    #         image_tensor = image_tensor.squeeze()
-    #         image_tensor = torch.stack([image_tensor, image_tensor, image_tensor])
-    #         image_tensor = image_tensor.unsqueeze(0)
-    #
-    #
-    #     torch.save(image_tensor, "/home/student/HW2/data/val_tensors/" + image_path[:-4] + "_tensor")
+    # with Pool() as pool:
+    #     print(f"There are {len(jobs)} images.")
+    #     pool.map(save_images_aux, jobs)
+    #     pool.close()
+    #     pool.join()

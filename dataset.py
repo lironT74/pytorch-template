@@ -93,9 +93,29 @@ class MyDataset(Dataset):
             image_tensor = torch.load(f"/home/student/HW2/data/train_tensors/COCO_train2014_{str(image_id).zfill(12)}_tensor")
 
         else:
-            image_tensor = torch.load(f"/home/student/HW2/data/train_tensors/COCO_val2014_{str(image_id).zfill(12)}_tensor")
+            image_tensor = torch.load(f"/home/student/HW2/data/val_tensors/COCO_val2014_{str(image_id).zfill(12)}_tensor")
+
 
         return (image_tensor, question_words_indexes), (label_counts, labels, scores)
+
+
+        # if self.is_Train:
+        #     the_image_path = f'{self.image_path}COCO_train2014_{str(image_id).zfill(12)}.jpg'
+        # else:
+        #     the_image_path = f'{self.image_path}COCO_val2014_{str(image_id).zfill(12)}.jpg'
+        #
+        #
+        # image = Image.open('/datashare/train2014/' + the_image_path)
+        # image = transforms.Resize((224, 224))(image)
+        # image_tensor = transforms.ToTensor()(image).unsqueeze(0)
+        #
+        # if image_tensor.shape[1] == 1:
+        #     image_tensor = image_tensor.squeeze()
+        #     image_tensor = torch.stack([image_tensor, image_tensor, image_tensor])
+        #     image_tensor = image_tensor.unsqueeze(0)
+        #
+        #
+        # return (image_tensor, question_words_indexes), (label_counts, labels, scores)
 
 
 
