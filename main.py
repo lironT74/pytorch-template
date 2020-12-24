@@ -20,6 +20,7 @@ from VQA_model_attention import VQA_Attention
 from torchvision import models, transforms
 from PIL import Image
 from multiprocessing import Pool
+from VQA_form_lecture import VQA_from_lecture
 
 torch.backends.cudnn.benchmark = True
 
@@ -51,7 +52,7 @@ def main(cfg: DictConfig) -> None:
     # Init model
 
     # model = VQA(word_vocab_size=word_vocab_size, num_classes=num_clases)
-    model = VQA_Attention(word_vocab_size=word_vocab_size, num_classes=num_clases)
+    model = VQA_from_lecture(word_vocab_size=word_vocab_size, num_classes=num_clases)
 
 
     # TODO: Add gpus_to_use

@@ -82,7 +82,6 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
 
         for i, (x, y) in enumerate(train_loader):
-
             # print(f'Epoch: {epoch+1}, Image {i+1}/{len(train_loader)}')
             image_tensor, q_words_indexes_tensor = x
             label_counts, labels, scores = y
