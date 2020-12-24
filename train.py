@@ -99,7 +99,10 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
+            # print(y_multiple_choice_answers)
+            # print(y_hat)
             loss = criterion(y_hat, y_multiple_choice_answers) / batch_size
+            # print(loss)
             loss.backward()
 
 
