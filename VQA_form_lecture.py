@@ -43,21 +43,40 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
         self.psi_i_q_i = nn.Parameter(torch.randn(1, max_sentence_length, output_dim_nets, 1))
 
         self.w_i = nn.Parameter(torch.randn(1))
+        self.w_i_i = nn.Parameter(torch.randn(1))
         self.w_i_q = nn.Parameter(torch.randn(1))
         self.w_q = nn.Parameter(torch.randn(1))
+        self.w_q_q = nn.Parameter(torch.randn(1))
         self.w_q_i = nn.Parameter(torch.randn(1))
+
+        self.weights_mu_image_question = nn.Linear(max_sentence_length, 1)
+        self.weights_mu_question_image = nn.Linear(49, 1)
+
+        self.weights_mu_image_image = nn.Linear(49, 1)
+        self.weights_mu_question_question = nn.Linear(max_sentence_length, 1)
 
 
         self.d_for_interaction = d_for_interaction
 
-        self.Ri = nn.Parameter(torch.randn(1, 49, 512, d_for_interaction))
-        self.Lq = nn.Parameter(torch.randn(1, max_sentence_length, output_dim_nets, d_for_interaction))
+        # Previous Ri_q, Lq_i: for every region and word exists unique Ri_q and Lq_i
+        # self.Ri_q = nn.Parameter(torch.randn(1, 49, 512, d_for_interaction))
+        # self.Lq_i = nn.Parameter(torch.randn(1, max_sentence_length, output_dim_nets, d_for_interaction))
+        self.Ri_q = nn.Linear(512, d_for_interaction, bias=False)
+        self.Lq_i = nn.Linear(output_dim_nets, d_for_interaction, bias=False)
+
+        # new Ri_q, Lq_i
 
         self.relu = nn.ReLU()
         self.soft_max = nn.Softmax(dim=1)
         self.log_softmax = nn.LogSoftmax(dim=1)
 
-        self.fc = nn.Linear(output_dim_nets+512, num_classes)
+        self.fc_dimension = output_dim_nets+512
+        self.inner_fc_dim = 4096
+
+        self.fc1 = nn.Linear(self.fc_dimension, self.inner_fc_dim)
+        self.fc2 = nn.Linear(self.inner_fc_dim, self.inner_fc_dim)
+        self.fc3 = nn.Linear(self.inner_fc_dim, self.output_dimension)
+
 
 
     def forward(self, input: (Tensor, Tensor)) -> Tensor:
@@ -73,12 +92,13 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
         # Pass word_idx and pos_idx through their embedding layers
         word_vec = self.word_embedding(question)        # [batch, seq, emb_dim]
         # print(word_vec.size())
-        added_tensors = torch.zeros(word_vec.shape[0], self.max_sentence_length - seq_length,
-                                    word_vec.shape[-1])  # [batch, seq_len, 1, emb_dim]
-        # print(added_tensors.size())
-        if torch.cuda.is_available():
-            added_tensors = added_tensors.cuda()
-        word_vec = torch.cat((word_vec, added_tensors), 1)  # [batch, max_len, 1, output_dim_nets]
+        # added_tensors = torch.zeros(word_vec.shape[0], self.max_sentence_length - seq_length,
+        #                             word_vec.shape[-1])  # [batch, seq_len, 1, emb_dim]
+        # # print(added_tensors.size())
+        # if torch.cuda.is_available():
+        #     added_tensors = added_tensors.cuda()
+        #
+        # word_vec = torch.cat((word_vec, added_tensors), 1)  # [batch, max_len, 1, output_dim_nets]
 
         lstm_outputs, (_, _) = self.question_model(word_vec)                # outpup_lstm = [batch_size, seq_len, output_dim_nets]
         seq_len = lstm_outputs.shape[1]
@@ -91,7 +111,8 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
         _, image_regions = self.image_model(image)                                # [batch, output_dim_nets], [batch, region_dim=512 ,7, 7]
 
         # print('from cnn' ,image_regions)
-        image_regions = image_regions.view(image_regions.shape[0], image_regions.shape[2]*image_regions.shape[3], 1, -1)  # [batch, 49, 1, region_dim=512]
+        image_regions = image_regions.view(image_regions.shape[0],
+                                           image_regions.shape[2]*image_regions.shape[3], 1, -1)  # [batch, 49, 1, region_dim=512]
         # print('after review', image_regions)
 
 
@@ -100,17 +121,16 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
         # print('line 94', psi_i)
 
         mu_image_question, mu_question_image = self.get_mu_q_i(lstm_outputs, image_regions, seq_len)    # [batch, num_of_rehions=49], [batch, max_len]
+        mu_i_i, mu_q_q = self.get_mu_i_mu_q(image_regions, lstm_outputs)
 
-        # b_i = self.w_i*psi_i + self.w_i_q*mu_image_question             # [batch, num_of_rehions=49]
-        # b_q = self.w_q*psi_q + self.w_q_i*mu_question_image             # [batch, max_len]
-        b_i = psi_i + mu_image_question  # [batch, num_of_rehions=49]
-        b_q = psi_q + mu_question_image  # [batch, max_len]
-        # print('psi if before 94', psi_i)
-        # print(psi_i.size())
-        # print('mu_image_question', mu_image_question)
-        # print('mu_image_question size', mu_image_question.size())
 
-        # print('line 97', b_i)
+
+
+        b_i = self.w_i*psi_i + self.w_i_i*mu_i_i + self.w_i_q*mu_image_question             # [batch, num_of_rehions=49]
+        b_q = self.w_q*psi_q + self.w_q_q*mu_q_q + self.w_q_i*mu_question_image             # [batch, max_len]
+
+        # b_i = psi_i + mu_image_question  # [batch, num_of_rehions=49]
+        # b_q = psi_q + mu_question_image  # [batch, max_len]
 
 
         softmaxed_image = self.soft_max(b_i).unsqueeze(1)     # [batch, 1, max_len=49]
@@ -123,23 +143,23 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
 
 
         final_vec = torch.cat((a_i, a_q), dim=1)  # [batch, region_dim=512 + output_dim_nets]
-        x = self.fc(final_vec)
-        # x = self.relu(x)
-        # print('inside forward:', x.size())
-        # print(x)
+
+        x = self.fc1(final_vec)
+        x = self.relu(x)
+
+        x = self.fc2(x)
+        x = self.relu(x)
+
+        x = self.fc3(x)
+        x = self.relu(x)
+
         return self.log_softmax(x)
 
     def get_psi_i(self, image_regions):
-        # print('inside get psi i', image_regions)
-        # print('psi is', self.psi_i_V_i)
         output = torch.matmul(image_regions, self.psi_i_V_i)           # [batch, num_of_rehions=49, 1, region_dim=512]
-        # print('line 120', output)
         output = self.relu(output)
-        # print('line 121', output)
         output = torch.matmul(output, self.psi_i_v_i)                  # [batch, num_of_rehions=49, 1, 1]
-        # print('line 122', output)
         output = output.squeeze(-1).squeeze(-1)                        # [batch, num_of_regions=49]
-        # print('line 124', output)
         return output
 
     def get_psi_q(self, lstm_outputs):
@@ -150,48 +170,60 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
         return output
 
     def get_mu_q_i(self, lstm_outputs, image_regions, seq_len):
-        # image_regions = image_regions.view(image_regions.shape[0], image_regions[1]*image_regions[2], 1, -1)
-        #
-        # seq_len = lstm_outputs.shape[1]
-        # lstm_outputs = lstm_outputs.view(lstm_outputs.shape[0], seq_len, 1, -1)  # [batch, seq_len, 1, output_dim_nets]
-        # added_tensors = torch.zeros(lstm_outputs.shape[0], self.max_sentence_length - seq_len, 1, -1)  # [batch, seq_len, 1, output_dim_nets]
-        # lstm_outputs = torch.cat((lstm_outputs, added_tensors), 1)  # [batch, max_len, 1, output_dim_nets]
-        # print('inside mu q i')
-        # print('Ri', self.Ri)
-        # print('Lq ', self.Lq)
 
-        image_non_normalized = torch.matmul(image_regions, self.Ri).squeeze(2)      # [batch, num_of_rehions=49, d_for_interaction]
-        q_vecs_non_normalized = torch.matmul(lstm_outputs, self.Lq).squeeze(2)      # [batch, max_len, d_for_interaction]
-        # print('image_non_normalized', image_non_normalized)
-        # print('q_vecs_non_normalized', q_vecs_non_normalized)
+        # image_non_normalized = torch.matmul(image_regions, self.Ri_q).squeeze(2)
+        image_non_normalized = self.Ri_q(image_regions)  # [batch, num_of_rehions=49, d_for_interaction]
+
+        # q_vecs_non_normalized = torch.matmul(lstm_outputs, self.Lq_i).squeeze(2)
+        q_vecs_non_normalized = self.Lq_i(lstm_outputs)  # [batch, max_len, d_for_interaction]
+
         image_norms = torch.norm(image_non_normalized, dim=-1).unsqueeze(-1)
-        # print('image_norms', image_norms)
         image_norms = image_norms.expand_as(image_non_normalized) # [batch, num_of_rehions=49, d_for_interaction]
-        # print('image_norms expanded', image_norms)
 
         q_vecs_norms = torch.norm(q_vecs_non_normalized, dim=-1).unsqueeze(-1)
-        # print('q_vecs_norms', q_vecs_norms)
         q_vecs_norms = q_vecs_norms.expand_as(q_vecs_non_normalized) # [batch, max_len, d_for_interaction]
-        # print('q_vecs_norms_expanded', q_vecs_norms)
-
 
         image_normalized = image_non_normalized / image_norms                       # [batch, num_of_rehions=49, d_for_interaction]
-        # print('image_noralized', image_normalized)
-
-        # q_vecs_non_normalized[range(q_vecs_non_normalized.shape[0]), :seq_len] = q_vecs_non_normalized[range(q_vecs_non_normalized.shape[0]), :seq_len] / q_vecs_norms[range(q_vecs_non_normalized.shape[0]), :seq_len]                    # [batch, max_len, d_for_interaction]
 
         q_vecs_normalized = q_vecs_non_normalized / q_vecs_norms
 
         psi_q_i = torch.matmul(q_vecs_normalized, torch.transpose(image_normalized, -2, -1)) # [batch, max_len, num_of_rehions=49]
-        # print('psi_q_i', psi_q_i)
 
-        mu_image_question = torch.sum(psi_q_i, 1)                                   # [batch, num_of_rehions=49]
-        # print('mu_image_question',mu_image_question)
-        mu_question_image = torch.sum(psi_q_i, 2)                                   # [batch, max_len]
-        # print('mu_question_image',mu_question_image)
+        # mu_image_question = torch.sum(psi_q_i, 1)                                   # [batch, num_of_rehions=49]
+        # mu_question_image = torch.sum(psi_q_i, 2)                                   # [batch, max_len]
+
+        mu_image_question = self.weights_mu_image_question(torch.transpose(psi_q_i, -2, -1)).squeeze(-1) # [batch, num_of_rehions=49]
+        mu_question_image = self.weights_mu_question_image(psi_q_i).squeeze(-1)  # [batch, num_of_rehions=49]
 
 
         return mu_image_question, mu_question_image
+
+    def get_mu_i_mu_q(self, image_regions, q_vecs):
+
+        image_norms = torch.norm(image_regions, dim=-1).unsqueeze(-1)
+        image_norms = image_norms.expand_as(image_norms)  # [batch, num_of_rehions=49, 512]
+
+        q_vecs_norms = torch.norm(q_vecs, dim=-1).unsqueeze(-1)
+        q_vecs_norms = q_vecs_norms.expand_as(q_vecs)  # [batch, max_len, d_for_interaction]
+
+        image_normalized = image_regions / image_norms  # [batch, num_of_rehions=49, 512]
+
+        q_vecs_normalized = q_vecs / q_vecs_norms
+
+        psi_i_i = torch.matmul(image_normalized, torch.transpose(image_normalized, -2, -1)) # [batch, num_of_rehions, num_of_rehions=49]
+
+        psi_q_q = torch.matmul(q_vecs_norms, torch.transpose(q_vecs_norms, -2, -1)) # [batch, max_len, max_len=49]
+
+        # mu_i_i = torch.sum(psi_i_i, 1)  # [batch, num_of_rehions=49]
+        # mu_q_q = torch.sum(psi_q_q, 1)  # [batch, max_len]
+
+        mu_i_i = self.weights_mu_image_image(psi_i_i).squeeze(-1)
+        mu_q_q = self.weights_mu_question_question(psi_q_q).squeeze(-1)
+
+        return mu_i_i, mu_q_q
+
+
+
 
 
 

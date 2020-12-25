@@ -316,6 +316,9 @@ def questions_data_words_to_indexes(train_question, name, cache_root):
 
     word2index['<UNK>'] = index
     index2word[index] = '<UNK>'
+    index += 1
+    word2index['<PAD>'] = index
+    index2word[index] = '<PAD>'
 
 
     # for q in val_question:
@@ -355,19 +358,19 @@ def v2_questions_words_dicts():
 
 def main():
     v2_questions_words_dicts()
-    load_v2_answers()
+    # load_v2_answers()
 
 
 if __name__ == '__main__':
-    train_question_file = '/datashare/v2_OpenEnded_mscoco_val2014_questions.json'
-    max_len = 0
-    with open(train_question_file) as f:
-        train_question = json.load(f)['questions']
-        for q in train_question:
-            q_len = len(preprocess_answer(q['question']).split(' '))
-            if q_len > max_len:
-                max_len = q_len
-    print(max_len)
-
-    pass
-    # main()
+    # train_question_file = '/datashare/v2_OpenEnded_mscoco_val2014_questions.json'
+    # max_len = 0
+    # with open(train_question_file) as f:
+    #     train_question = json.load(f)['questions']
+    #     for q in train_question:
+    #         q_len = len(preprocess_answer(q['question']).split(' '))
+    #         if q_len > max_len:
+    #             max_len = q_len
+    # print(max_len)
+    #
+    # pass
+    main()

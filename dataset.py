@@ -72,6 +72,8 @@ class MyDataset(Dataset):
         self.num_of_words = len(self.words2index)
         self.num_of_labels = len(self.ans2label)
 
+        self.max_len_q = 20
+
         self.is_Train = is_Train
 
         if not is_pre:
@@ -145,6 +147,8 @@ class MyDataset(Dataset):
         for q in questions:
             indexes = []
 
+
+
             for word in preprocess_answer(q['question']).split(' '):
 
                 if word in self.words2index:
@@ -152,6 +156,9 @@ class MyDataset(Dataset):
                 else:
                     indexes.append(self.words2index['<UNK>'])
 
+
+            for i in range(len(preprocess_answer(q['question']).split(' ')), self.max_len_q, 1):
+                indexes.append(self.words2index['<PAD>'])
 
             image_id = q['image_id']
             questions_words_indexes_by_image_id[image_id] = torch.tensor(indexes)
