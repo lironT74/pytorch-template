@@ -101,10 +101,10 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
 
         mu_image_question, mu_question_image = self.get_mu_q_i(lstm_outputs, image_regions, seq_len)    # [batch, num_of_rehions=49], [batch, max_len]
 
-        b_i = self.w_i*psi_i + self.w_i_q*mu_image_question             # [batch, num_of_rehions=49]
-        b_q = self.w_q*psi_q + self.w_q_i*mu_question_image             # [batch, max_len]
-        # b_i = psi_i + mu_image_question  # [batch, num_of_rehions=49]
-        # b_q = psi_q + mu_question_image  # [batch, max_len]
+        # b_i = self.w_i*psi_i + self.w_i_q*mu_image_question             # [batch, num_of_rehions=49]
+        # b_q = self.w_q*psi_q + self.w_q_i*mu_question_image             # [batch, max_len]
+        b_i = psi_i + mu_image_question  # [batch, num_of_rehions=49]
+        b_q = psi_q + mu_question_image  # [batch, max_len]
         # print('psi if before 94', psi_i)
         # print(psi_i.size())
         # print('mu_image_question', mu_image_question)
@@ -124,7 +124,9 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
 
         final_vec = torch.cat((a_i, a_q), dim=1)  # [batch, region_dim=512 + output_dim_nets]
         x = self.fc(final_vec)
-        x = self.relu(x)
+        # x = self.relu(x)
+        # print('inside forward:', x.size())
+        # print(x)
         return self.log_softmax(x)
 
     def get_psi_i(self, image_regions):

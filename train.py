@@ -101,18 +101,25 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
             # print(y_multiple_choice_answers)
             # print(y_hat)
+            # print(y_hat)
+            # print(torch.argmax(y_hat, dim=1))
             loss = criterion(y_hat, y_multiple_choice_answers) / batch_size
+            # print(i, loss)
             # print(loss)
             loss.backward()
 
 
             if i % batch_size == 0 or i == len(train_loader) - 1:
+                # if i > 1024*5:
+                #     break
+
                 print(f'Epoch: {epoch+1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
                 batch_counter += 1
 
                 # Calculate metrics
                 metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
                 metrics['count_norm'] += 1
+                print(metrics['total_norm'] / metrics['count_norm'] )
 
                 optimizer.step()
                 optimizer.zero_grad()
