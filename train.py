@@ -109,9 +109,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
             loss.backward()
 
 
-            if i % batch_size == 0 or i == len(train_loader) - 1:
-                # if i > 1024*5:
-                #     break
+            if (i+1) % batch_size == 0 or i == len(train_loader) - 1:
 
                 print(f'Epoch: {epoch+1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
                 batch_counter += 1
@@ -119,7 +117,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 # Calculate metrics
                 metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
                 metrics['count_norm'] += 1
-                print(metrics['total_norm'] / metrics['count_norm'] )
+                # print(metrics['total_norm'] / metrics['count_norm'] )
 
                 optimizer.step()
                 optimizer.zero_grad()
@@ -135,7 +133,6 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 metrics['train_score'] += 0
             else:
                 metrics['train_score'] += get_score(label_counts[y_hat_index]) / len(train_loader)
-
 
 
         # Learning rate scheduler step
@@ -161,7 +158,8 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
         scalars = {'Accuracy/Train': metrics['train_score'],
                    'Accuracy/Validation': metrics['eval_score'],
                    'Loss/Train': metrics['train_loss'],
-                   'Loss/Validation': metrics['eval_loss']}
+                   'Loss/Validation': metrics['eval_loss'],
+                   }
 
 
         logger.report_scalars(scalars, epoch, separated=False)
