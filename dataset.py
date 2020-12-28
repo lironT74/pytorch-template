@@ -93,6 +93,13 @@ class MyDataset(Dataset):
     def __getitem__(self, index: int) -> Tuple:
         (image_id, question_words_indexes, (label_counts, labels, scores)) = self.all_q_a[index]
 
+
+        for i in enumerate(question_words_indexes):
+            if np.random.binomial(n=1, p=0.1):
+                question_words_indexes[i] = self.words2index['<UNK>']
+
+
+
         if self.only_lstm:
             return question_words_indexes, (label_counts, labels, scores)
 

@@ -317,6 +317,7 @@ def questions_data_words_to_indexes(train_question, name, cache_root):
     word2index['<UNK>'] = index
     index2word[index] = '<UNK>'
     index += 1
+
     word2index['<PAD>'] = index
     index2word[index] = '<PAD>'
 

@@ -88,6 +88,8 @@ def train_special_loss(model: nn.Module, train_loader: DataLoader, eval_loader: 
             image_tensor, q_words_indexes_tensor = x
             label_counts, labels, scores = y
 
+
+
             if torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
                 q_words_indexes_tensor = q_words_indexes_tensor.cuda()
@@ -159,10 +161,11 @@ def train_special_loss(model: nn.Module, train_loader: DataLoader, eval_loader: 
 
         norm = metrics['total_norm'] / metrics['count_norm']
 
-
         model.train(False)
-        metrics['eval_score'], metrics['eval_loss'] = evaluate_special_loss(model, eval_loader, criterion)
+        with torch.no_grad():
+            metrics['eval_score'], metrics['eval_loss'] = evaluate_special_loss(model, eval_loader, criterion)
         model.train(True)
+
 
         epoch_time = time.time() - t
         logger.write_epoch_statistics(epoch, epoch_time, metrics['train_loss'], norm,

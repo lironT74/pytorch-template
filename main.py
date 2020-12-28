@@ -111,6 +111,8 @@ def save_images_aux(image_path):
 
     torch.save(image_tensor, "/home/student/HW2/data/train_tensors/" + image_path[:-4] + "_tensor")
 
+
+
 @hydra.main(config_path="config", config_name='config')
 def main_lstm(cfg: DictConfig) -> None:
     """

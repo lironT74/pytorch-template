@@ -16,6 +16,7 @@ from data_preprocess import get_score
 import matplotlib.pyplot
 
 from datetime import datetime
+import numpy as np
 def cur_time():
     now = datetime.now()
     cur_time = now.strftime("%d/%m/%Y %H:%M:%S")
@@ -84,6 +85,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
             q_words_indexes_tensor = x
             label_counts, labels, scores = y
 
+
             if torch.cuda.is_available():
                 q_words_indexes_tensor = q_words_indexes_tensor.cuda()
                 labels = labels.cuda()
@@ -141,8 +143,10 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
         norm = metrics['total_norm'] / metrics['count_norm']
 
 
+
         model.train(False)
-        metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader, criterion)
+        with torch.no_grad():
+            metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader, criterion)
         model.train(True)
 
         epoch_time = time.time() - t

@@ -147,8 +147,10 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
 
         model.train(False)
-        metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader, criterion)
+        with torch.no_grad():
+            metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader, criterion)
         model.train(True)
+
 
         epoch_time = time.time() - t
         logger.write_epoch_statistics(epoch, epoch_time, metrics['train_loss'], norm,
