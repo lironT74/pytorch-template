@@ -8,6 +8,7 @@ import hydra
 import os
 
 from train import train
+import train_separately
 from train_special_loss import train_special_loss
 from dataset import MyDataset
 from models.base_model import MyModel
@@ -21,6 +22,8 @@ from torchvision import models, transforms
 from PIL import Image
 from multiprocessing import Pool
 from VQA_form_lecture import VQA_from_lecture
+
+from LSTM_question_model import LSTM
 
 torch.backends.cudnn.benchmark = True
 
@@ -52,7 +55,19 @@ def main(cfg: DictConfig) -> None:
     # Init model
 
     # model = VQA(word_vocab_size=word_vocab_size, num_classes=num_clases)
-    model = VQA_from_lecture(word_vocab_size=word_vocab_size, num_classes=num_clases)
+    model = VQA_Attention(word_vocab_size=word_vocab_size, num_classes=num_clases)
+
+    lstm_model = LSTM(word_vocab_size=word_vocab_size, num_classes=num_clases)
+
+    model_path = '/home/student/HW2/logs/my_exp_12_23_12_53_30/model.pth'
+    pretrained_lstm_dict = torch.load(model_path)['model_state']
+    lstm_model.load_state_dict(pretrained_lstm_dict)
+
+    model.question_model = lstm_model.lstm_model
+    model.word_embedding = lstm_model.word_embedding
+
+    for param in model.features.parameters():
+        param.requires_grad = True
 
 
     # TODO: Add gpus_to_use
@@ -68,8 +83,9 @@ def main(cfg: DictConfig) -> None:
     train_params = train_utils.get_train_params(cfg)
 
     # Report metrics and hyper parameters to tensorboard
+    metrics = train_separately.train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
 
-    metrics = train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
+    # metrics = train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
     # metrics = train_special_loss(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
 
     hyper_parameters = main_utils.get_flatten_dict(cfg['train'])
@@ -95,9 +111,65 @@ def save_images_aux(image_path):
 
     torch.save(image_tensor, "/home/student/HW2/data/train_tensors/" + image_path[:-4] + "_tensor")
 
+@hydra.main(config_path="config", config_name='config')
+def main_lstm(cfg: DictConfig) -> None:
+    """
+    Run the code following a given configuration
+    :param cfg: configuration file retrieved from hydra framework
+    """
+    main_utils.init(cfg)
+    logger = TrainLogger(exp_name_prefix=cfg['main']['experiment_name_prefix'], logs_dir=cfg['main']['paths']['logs'])
+    logger.write(OmegaConf.to_yaml(cfg))
+
+    # Set seed for results reproduction
+    main_utils.set_seed(cfg['main']['seed'])
+
+    # Load dataset
+    val_dataset = MyDataset(is_Train=False, only_lstm=True)
+    train_dataset = MyDataset(is_Train=True, only_lstm=True)
+    word_vocab_size = train_dataset.num_of_words
+    num_clases = train_dataset.num_of_labels
+
+    eval_loader = DataLoader(val_dataset, batch_size=1, shuffle=False,
+                              num_workers=cfg['main']['num_workers'])
+    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True,
+                              num_workers=cfg['main']['num_workers'])
+
+    # Init model
+
+    # model = VQA(word_vocab_size=word_vocab_size, num_classes=num_clases)
+    model = LSTM(word_vocab_size=word_vocab_size, num_classes=num_clases)
+
+
+    # TODO: Add gpus_to_use
+    # if cfg['main']['parallel']:
+    #     model = torch.nn.DataParallel(model)
+
+    if torch.cuda.is_available():
+        model = model.cuda()
+
+    logger.write(main_utils.get_model_string(model))
+
+    # Run model
+    train_params = train_utils.get_train_params(cfg)
+
+    # Report metrics and hyper parameters to tensorboard
+    metrics = train_separately.train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
+
+    # metrics = train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
+    # metrics = train_special_loss(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
+
+    hyper_parameters = main_utils.get_flatten_dict(cfg['train'])
+
+    logger.report_metrics_hyper_params(hyper_parameters, metrics)
+
+
+
+
+
 
 if __name__ == '__main__':
-    main()
+    main_lstm()
 
 
     # jobs = []

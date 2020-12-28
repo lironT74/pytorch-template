@@ -32,7 +32,7 @@ class MyDataset(Dataset):
     """
     Custom dataset template. Implement the empty functions.
     """
-    def __init__(self, is_Train: bool, is_pre = False) -> None:
+    def __init__(self, is_Train: bool, is_pre=False, only_lstm=False) -> None:
         if is_Train:
             self.q_path = '/datashare/v2_OpenEnded_mscoco_train2014_questions.json'
             self.ann_path = '/home/student/HW2/data/cache/train_target.pkl'
@@ -66,7 +66,10 @@ class MyDataset(Dataset):
 
         if not is_pre:
             with open(self.all_q_a_path, 'rb') as f:
+                print(self.all_q_a_path)
                 self.all_q_a = pickle.load(f)
+
+        self.only_lstm = only_lstm
 
 
         self.num_of_words = len(self.words2index)
@@ -88,17 +91,21 @@ class MyDataset(Dataset):
 
 
     def __getitem__(self, index: int) -> Tuple:
-
         (image_id, question_words_indexes, (label_counts, labels, scores)) = self.all_q_a[index]
 
-        if self.is_Train:
-            image_tensor = torch.load(f"/home/student/HW2/data/train_tensors/COCO_train2014_{str(image_id).zfill(12)}_tensor")
+        if self.only_lstm:
+            return question_words_indexes, (label_counts, labels, scores)
 
         else:
-            image_tensor = torch.load(f"/home/student/HW2/data/val_tensors/COCO_val2014_{str(image_id).zfill(12)}_tensor")
+
+            if self.is_Train:
+                image_tensor = torch.load(f"/home/student/HW2/data/train_tensors/COCO_train2014_{str(image_id).zfill(12)}_tensor")
+
+            else:
+                image_tensor = torch.load(f"/home/student/HW2/data/val_tensors/COCO_val2014_{str(image_id).zfill(12)}_tensor")
 
 
-        return (image_tensor, question_words_indexes), (label_counts, labels, scores)
+            return (image_tensor, question_words_indexes), (label_counts, labels, scores)
 
 
         # if self.is_Train:

@@ -46,25 +46,25 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
         self.psi_i_q_i = nn.Parameter(torch.randn(1, max_sentence_length, output_dim_nets, 1), requires_grad=True)
 
 
-        self.w_i = nn.Parameter(torch.ones(1), requires_grad=True)
-        self.w_i_i = nn.Parameter(torch.ones(1), requires_grad=True)
-        self.w_i_q = nn.Parameter(torch.ones(1), requires_grad=True)
-        self.w_q = nn.Parameter(torch.ones(1), requires_grad=True)
-        self.w_q_q = nn.Parameter(torch.ones(1), requires_grad=True)
-        self.w_q_i = nn.Parameter(torch.ones(1), requires_grad=True)
+        # self.w_i = nn.Parameter(torch.ones(1), requires_grad=True)
+        # self.w_i_i = nn.Parameter(torch.ones(1), requires_grad=True)
+        # self.w_i_q = nn.Parameter(torch.ones(1), requires_grad=True)
+        # self.w_q = nn.Parameter(torch.ones(1), requires_grad=True)
+        # self.w_q_q = nn.Parameter(torch.ones(1), requires_grad=True)
+        # self.w_q_i = nn.Parameter(torch.ones(1), requires_grad=True)
 
 
-        self.weights_mu_image_question = nn.Linear(max_sentence_length, 1, bias=False)
-        self.weights_mu_image_question.weight.data.fill_(1.0)
-
-        self.weights_mu_question_image = nn.Linear(49, 1, bias=False)
-        self.weights_mu_question_image.weight.data.fill_(1.0)
-
-        self.weights_mu_image_image = nn.Linear(49, 1, bias=False)
-        self.weights_mu_image_image.weight.data.fill_(1.0)
-
-        self.weights_mu_question_question = nn.Linear(max_sentence_length, 1, bias=False)
-        self.weights_mu_question_question.weight.data.fill_(1.0)
+        # self.weights_mu_image_question = nn.Linear(max_sentence_length, 1, bias=False)
+        # self.weights_mu_image_question.weight.data.fill_(1.0)
+        #
+        # self.weights_mu_question_image = nn.Linear(49, 1, bias=False)
+        # self.weights_mu_question_image.weight.data.fill_(1.0)
+        #
+        # self.weights_mu_image_image = nn.Linear(49, 1, bias=False)
+        # self.weights_mu_image_image.weight.data.fill_(1.0)
+        #
+        # self.weights_mu_question_question = nn.Linear(max_sentence_length, 1, bias=False)
+        # self.weights_mu_question_question.weight.data.fill_(1.0)
 
 
 
@@ -98,48 +98,33 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
         :return:
         """
         image, question = input
-        batch_size = question.shape[0]
-        seq_length = question.shape[1]
 
         # Pass word_idx and pos_idx through their embedding layers
-        word_vec = self.word_embedding(question)        # [batch, seq, emb_dim]
-        # print(word_vec.size())
-        # added_tensors = torch.zeros(word_vec.shape[0], self.max_sentence_length - seq_length,
-        #                             word_vec.shape[-1])  # [batch, seq_len, 1, emb_dim]
-        # # print(added_tensors.size())
-        # if torch.cuda.is_available():
-        #     added_tensors = added_tensors.cuda()
-        #
-        # word_vec = torch.cat((word_vec, added_tensors), 1)  # [batch, max_len, 1, output_dim_nets]
+        word_vec = self.word_embedding(question)
 
         lstm_outputs, (_, _) = self.question_model(word_vec)                # outpup_lstm = [batch_size, seq_len, output_dim_nets]
         seq_len = lstm_outputs.shape[1]
         lstm_outputs = lstm_outputs.view(lstm_outputs.shape[0], seq_len, 1, -1)                         # [batch, seq_len, 1, output_dim_nets]
-        # print(output_lstm.shape)
 
         image = image.squeeze(0)
-        # print(image_path.shape)
 
         _, image_regions = self.image_model(image)                                # [batch, output_dim_nets], [batch, region_dim=512 ,7, 7]
 
-        # print('from cnn' ,image_regions)
         image_regions = image_regions.view(image_regions.shape[0],
                                            image_regions.shape[2]*image_regions.shape[3], 1, -1)  # [batch, 49, 1, region_dim=512]
-        # print('after review', image_regions)
-
 
         psi_i = self.get_psi_i(image_regions)                                     # [batch, num_of_regions=49]
         psi_q = self.get_psi_q(lstm_outputs)                                 # [batch, max_len]
-        # print('line 94', psi_i)
 
         mu_image_question, mu_question_image = self.get_mu_q_i(lstm_outputs, image_regions, seq_len)    # [batch, num_of_rehions=49], [batch, max_len]
         mu_i_i, mu_q_q = self.get_mu_i_mu_q(image_regions, lstm_outputs)
 
 
+        # b_i = self.w_i*psi_i + self.w_i_i*mu_i_i + self.w_i_q*mu_image_question             # [batch, num_of_rehions=49]
+        # b_q = self.w_q*psi_q + self.w_q_q*mu_q_q + self.w_q_i*mu_question_image             # [batch, max_len]
 
-
-        b_i = self.w_i*psi_i + self.w_i_i*mu_i_i + self.w_i_q*mu_image_question             # [batch, num_of_rehions=49]
-        b_q = self.w_q*psi_q + self.w_q_q*mu_q_q + self.w_q_i*mu_question_image             # [batch, max_len]
+        b_i = psi_i + mu_i_i + mu_image_question             # [batch, num_of_rehions=49]
+        b_q = psi_q + mu_q_q + mu_question_image             # [batch, max_len]
 
         # b_i = psi_i + mu_image_question  # [batch, num_of_rehions=49]
         # b_q = psi_q + mu_question_image  # [batch, max_len]
@@ -147,7 +132,6 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
 
         softmaxed_image = self.soft_max(b_i).unsqueeze(1)     # [batch, 1, max_len=49]
         softmaxed_question = self.soft_max(b_q).unsqueeze(1)     # [batch, 1, num_of_rehions]
-        # print('line 101', softmaxed_image)
 
 
         a_i = torch.matmul(softmaxed_image, image_regions.squeeze(2)).squeeze(1)       # [batch, region_dim=512]
@@ -163,7 +147,7 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
         x = self.relu(x)
 
         x = self.fc3(x)
-        x = self.relu(x)
+        # x = self.relu(x)
 
         return self.log_softmax(x)
 
@@ -182,56 +166,34 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
         return output
 
     def get_mu_q_i(self, lstm_outputs, image_regions, seq_len):
-        # print(image_regions.size())
-        # print(lstm_outputs.size())
-
-        # image_non_normalized = torch.matmul(image_regions, self.Ri_q).squeeze(2)
         image_regions = image_regions.squeeze(2)
 
         image_non_normalized = self.Ri_q(image_regions)  # [batch, num_of_rehions=49, d_for_interaction]
-        # print(image_non_normalized.size())
 
-        # q_vecs_non_normalized = torch.matmul(lstm_outputs, self.Lq_i).squeeze(2)
         lstm_outputs = lstm_outputs.squeeze(2)
         q_vecs_non_normalized = self.Lq_i(lstm_outputs)  # [batch, max_len, d_for_interaction]
-        # print(q_vecs_non_normalized.size())
-
 
         image_norms = torch.norm(image_non_normalized, dim=-1).unsqueeze(-1)
-        # print(image_norms.size())
-
-
         image_norms = image_norms.expand_as(image_non_normalized) # [batch, num_of_rehions=49, d_for_interaction]
-        # print(image_norms.size())
-
 
         q_vecs_norms = torch.norm(q_vecs_non_normalized, dim=-1).unsqueeze(-1)
-        # print(q_vecs_norms.size())
         q_vecs_norms = q_vecs_norms.expand_as(q_vecs_non_normalized) # [batch, max_len, d_for_interaction]
-        # print(q_vecs_norms.size())
-
 
         image_normalized = image_non_normalized / image_norms                       # [batch, num_of_rehions=49, d_for_interaction]
         q_vecs_normalized = q_vecs_non_normalized / q_vecs_norms
 
-        # print(q_vecs_normalized.size())
-        # print(torch.transpose(image_normalized, -2, -1).size())
-
         psi_q_i = torch.matmul(q_vecs_normalized, torch.transpose(image_normalized, -2, -1)) # [batch, max_len, num_of_rehions=49]
 
-        # mu_image_question = torch.sum(psi_q_i, 1)                                   # [batch, num_of_rehions=49]
-        # mu_question_image = torch.sum(psi_q_i, 2)                                   # [batch, max_len]
-
-        mu_image_question = self.weights_mu_image_question(torch.transpose(psi_q_i, -2, -1)).squeeze(-1) # [batch, num_of_rehions=49]
-        mu_question_image = self.weights_mu_question_image(psi_q_i).squeeze(-1)  # [batch, num_of_rehions=49]
+        mu_image_question = torch.sum(psi_q_i, 1)                                   # [batch, num_of_rehions=49]
+        mu_question_image = torch.sum(psi_q_i, 2)                                   # [batch, max_len]
+        #
+        # mu_image_question = self.weights_mu_image_question(torch.transpose(psi_q_i, -2, -1)).squeeze(-1) # [batch, num_of_rehions=49]
+        # mu_question_image = self.weights_mu_question_image(psi_q_i).squeeze(-1)  # [batch, num_of_rehions=49]
 
 
         return mu_image_question, mu_question_image
 
     def get_mu_i_mu_q(self, image_regions, q_vecs):
-        # print(image_regions.size())
-        # print(q_vecs.size())
-
         image_regions = image_regions.squeeze(2)
         q_vecs = q_vecs.squeeze(2)
 
@@ -241,28 +203,16 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
         q_vecs_norms = torch.norm(q_vecs, dim=-1).unsqueeze(-1)
         q_vecs_norms = q_vecs_norms.expand_as(q_vecs)  # [batch, max_len, d_for_interaction]
 
-
-        # print(image_norms.size())
-        # print(q_vecs_norms.size())
-
-
         image_normalized = image_regions / image_norms  # [batch, num_of_rehions=49, 512]
         q_vecs_normalized = q_vecs / q_vecs_norms
-
-        # print(image_normalized.size())
-        # print(q_vecs_normalized.size())
-
 
         psi_i_i = torch.matmul(image_normalized, torch.transpose(image_normalized, -2, -1)) # [batch, num_of_rehions, num_of_rehions=49]
         psi_q_q = torch.matmul(q_vecs_normalized, torch.transpose(q_vecs_normalized, -2, -1)) # [batch, max_len, max_len=49]
 
-        # mu_i_i = torch.sum(psi_i_i, 1)  # [batch, num_of_rehions=49]
-        # mu_q_q = torch.sum(psi_q_q, 1)  # [batch, max_len]
+        mu_i_i = torch.sum(psi_i_i, 1)  # [batch, num_of_rehions=49]
+        mu_q_q = torch.sum(psi_q_q, 1)  # [batch, max_len]
 
-        # print(psi_i_i.size())
-        # print(psi_q_q.size())
-
-        mu_i_i = self.weights_mu_image_image(psi_i_i).squeeze(-1)
-        mu_q_q = self.weights_mu_question_question(psi_q_q).squeeze(-1)
+        # mu_i_i = self.weights_mu_image_image(psi_i_i).squeeze(-1)
+        # mu_q_q = self.weights_mu_question_question(psi_q_q).squeeze(-1)
 
         return mu_i_i, mu_q_q
