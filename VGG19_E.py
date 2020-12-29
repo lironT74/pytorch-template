@@ -8,17 +8,21 @@ class VGG19_E(nn.Module):
 
         self.output_dimension = output_dimension
 
+        self.conv_expand_1 = nn.Conv2d(3, 64, kernel_size=1, stride=1, bias=False)
         self.conv1_1 = nn.Conv2d(in_channels, 64, 9, 1, 4)
         self.conv1_2 = nn.Conv2d(64, 64, 9, 1, 4)
 
+        self.conv_expand_2 = nn.Conv2d(64, 128, kernel_size=1, stride=1, bias=False)
         self.conv2_1 = nn.Conv2d(64, 128, 7, 1, 3)
         self.conv2_2 = nn.Conv2d(128, 128, 7, 1, 3)
 
+        self.conv_expand_3 = nn.Conv2d(128, 256, kernel_size=1, stride=1, bias=False)
         self.conv3_1 = nn.Conv2d(128, 256, 5, 1, 2)
         self.conv3_2 = nn.Conv2d(256, 256, 5, 1, 2)
         self.conv3_3 = nn.Conv2d(256, 256, 5, 1, 2)
         self.conv3_4 = nn.Conv2d(256, 256, 5, 1, 2)
 
+        self.conv_expand_4 = nn.Conv2d(256, 512, kernel_size=1, stride=1, bias=False)
         self.conv4_1 = nn.Conv2d(256, 512, 3, 1, 1)
         self.conv4_2 = nn.Conv2d(512, 512, 3, 1, 1)
         self.conv4_3 = nn.Conv2d(512, 512, 3, 1, 1)
@@ -45,7 +49,7 @@ class VGG19_E(nn.Module):
 
     def forward(self, x):
 
-        saved_x = x
+        saved_x = self.conv_expand_1(x)
         x = self.conv1_1(x)
         x = self.relu(x)
         x = self.conv1_2(x)
@@ -53,7 +57,7 @@ class VGG19_E(nn.Module):
         x = x + saved_x
         x = self.pool(x)
 
-        saved_x = x
+        saved_x = self.conv_expand_2(x)
         x = self.conv2_1(x)
         x = self.relu(x)
         x = self.conv2_2(x)
@@ -61,7 +65,7 @@ class VGG19_E(nn.Module):
         x = x + saved_x
         x = self.pool(x)
 
-        saved_x = x
+        saved_x = self.conv_expand_3(x)
         x = self.conv3_1(x)
         x = self.relu(x)
         x = self.conv3_2(x)
@@ -75,7 +79,7 @@ class VGG19_E(nn.Module):
         x = x + saved_x
         x = self.pool(x)
 
-        saved_x = x
+        saved_x = self.conv_expand_4(x)
         x = self.conv4_1(x)
         x = self.relu(x)
         x = self.conv4_2(x)

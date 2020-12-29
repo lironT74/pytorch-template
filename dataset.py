@@ -98,7 +98,6 @@ class MyDataset(Dataset):
                 break
             if np.random.binomial(n=1, p=self.emb_dropout):
                 question_words_indexes[i] = self.words2index['<UNK>']
-
         if self.only_lstm:
             return question_words_indexes, (label_counts, labels, scores)
 

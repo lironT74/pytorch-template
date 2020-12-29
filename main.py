@@ -83,7 +83,7 @@ def main(cfg: DictConfig) -> None:
     train_params = train_utils.get_train_params(cfg)
 
     # Report metrics and hyper parameters to tensorboard
-    metrics = train_separately.train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
+    metrics = train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
 
     # metrics = train(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])
     # metrics = train_special_loss(model, train_loader, eval_loader, train_params, logger, cfg['train']['batch_size'])

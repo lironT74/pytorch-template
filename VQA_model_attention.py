@@ -23,13 +23,16 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
 
         # self.image_model = resnet18(3, output_dim_nets)
 
-        self.image_model = VGG19_E(3, output_dim_nets)
+        self.output_dim_nets = output_dim_nets
+        self.num_classes = num_classes
+
+        self.image_model = VGG19_E(3, self.output_dim_nets)
 
         self.word_embedding = nn.Embedding(num_embeddings=word_vocab_size, embedding_dim=word_emb_dim)
 
         self.LSTM_num_layers = LSTM_num_layers
 
-        self.question_model = nn.LSTM(input_size=word_emb_dim, hidden_size=output_dim_nets//2, num_layers=LSTM_num_layers,
+        self.question_model = nn.LSTM(input_size=word_emb_dim, hidden_size=self.output_dim_nets//2, num_layers=LSTM_num_layers,
                                bidirectional=True,
                                batch_first=True)
 
