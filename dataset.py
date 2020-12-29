@@ -32,7 +32,7 @@ class MyDataset(Dataset):
     """
     Custom dataset template. Implement the empty functions.
     """
-    def __init__(self, is_Train: bool, is_pre=False, only_lstm=False) -> None:
+    def __init__(self, is_Train: bool, emb_dropout=0.1,is_pre=False, only_lstm=False) -> None:
         if is_Train:
             self.q_path = '/datashare/v2_OpenEnded_mscoco_train2014_questions.json'
             self.ann_path = '/home/student/HW2/data/cache/train_target.pkl'
@@ -63,6 +63,7 @@ class MyDataset(Dataset):
         with open(self.target_labels_path, 'rb') as f:
             self.target_labels = pickle.load(f)
 
+        self.emb_dropout = emb_dropout
 
         if not is_pre:
             with open(self.all_q_a_path, 'rb') as f:
@@ -92,13 +93,11 @@ class MyDataset(Dataset):
 
     def __getitem__(self, index: int) -> Tuple:
         (image_id, question_words_indexes, (label_counts, labels, scores)) = self.all_q_a[index]
-
-
-        for i in enumerate(question_words_indexes):
-            if np.random.binomial(n=1, p=0.1):
+        for i in range(len(question_words_indexes)):
+            if question_words_indexes[i] == self.words2index['<PAD>']:
+                break
+            if np.random.binomial(n=1, p=self.emb_dropout):
                 question_words_indexes[i] = self.words2index['<UNK>']
-
-
 
         if self.only_lstm:
             return question_words_indexes, (label_counts, labels, scores)

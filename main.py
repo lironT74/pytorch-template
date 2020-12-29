@@ -45,6 +45,7 @@ def main(cfg: DictConfig) -> None:
     val_dataset = MyDataset(is_Train=False)
     train_dataset = MyDataset(is_Train=True)
     word_vocab_size = train_dataset.num_of_words
+    print('word vocab size:', word_vocab_size)
     num_clases = train_dataset.num_of_labels
 
     eval_loader = DataLoader(val_dataset, batch_size=1, shuffle=False,
@@ -54,20 +55,19 @@ def main(cfg: DictConfig) -> None:
 
     # Init model
 
-    # model = VQA(word_vocab_size=word_vocab_size, num_classes=num_clases)
     model = VQA_Attention(word_vocab_size=word_vocab_size, num_classes=num_clases)
 
-    lstm_model = LSTM(word_vocab_size=word_vocab_size, num_classes=num_clases)
+    # lstm_model = LSTM(word_vocab_size=word_vocab_size, num_classes=num_clases)
 
-    model_path = '/home/student/HW2/logs/my_exp_12_23_12_53_30/model.pth'
-    pretrained_lstm_dict = torch.load(model_path)['model_state']
-    lstm_model.load_state_dict(pretrained_lstm_dict)
+    # model_path = '/home/student/HW2/logs/my_exp_12_23_12_53_30/model.pth'
+    # pretrained_lstm_dict = torch.load(model_path)['model_state']
+    # lstm_model.load_state_dict(pretrained_lstm_dict)
+    #
+    # model.question_model = lstm_model.lstm_model
+    # model.word_embedding = lstm_model.word_embedding
 
-    model.question_model = lstm_model.lstm_model
-    model.word_embedding = lstm_model.word_embedding
-
-    for param in model.features.parameters():
-        param.requires_grad = True
+    # for param in model.features.parameters():
+    #     param.requires_grad = True
 
 
     # TODO: Add gpus_to_use
@@ -130,6 +130,8 @@ def main_lstm(cfg: DictConfig) -> None:
     val_dataset = MyDataset(is_Train=False, only_lstm=True)
     train_dataset = MyDataset(is_Train=True, only_lstm=True)
     word_vocab_size = train_dataset.num_of_words
+    print('word vocab size:', word_vocab_size)
+
     num_clases = train_dataset.num_of_labels
 
     eval_loader = DataLoader(val_dataset, batch_size=1, shuffle=False,
@@ -171,7 +173,7 @@ def main_lstm(cfg: DictConfig) -> None:
 
 
 if __name__ == '__main__':
-    main_lstm()
+    main()
 
 
     # jobs = []

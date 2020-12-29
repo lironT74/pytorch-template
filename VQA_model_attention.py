@@ -4,7 +4,7 @@ from torch import nn, Tensor
 from simple_cnn_model import SimpleCNNModel
 from resnet import resnet18
 from LSTM_question_model import LSTM
-from VGG19_A import VGG19_A
+from VGG19_E import VGG19_E
 import torch
 
 
@@ -16,13 +16,14 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
                  word_vocab_size: int = 100000,
                  word_emb_dim: int = 50,
                  num_classes: int = 3219,
-                 LSTM_num_layers: int = 2):
+                 LSTM_num_layers: int = 2,
+                 dropout: float = 0.2):
 
         super(VQA_Attention, self).__init__()
 
         # self.image_model = resnet18(3, output_dim_nets)
 
-        self.image_model = VGG19_A(3, output_dim_nets)
+        self.image_model = VGG19_E(3, output_dim_nets)
 
         self.word_embedding = nn.Embedding(num_embeddings=word_vocab_size, embedding_dim=word_emb_dim)
 
@@ -32,13 +33,20 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
                                bidirectional=True,
                                batch_first=True)
 
-        self.fc = nn.Linear(output_dim_nets, num_classes)
 
         self.relu = nn.ReLU()
 
         self.log_softmax = nn.LogSoftmax(dim=1)
 
         self.soft_max = nn.Softmax(dim=1)
+
+        self.dropout = nn.Dropout(dropout, inplace=True)
+
+        self.inner_fc_dim = 4096
+
+        self.fc1 = nn.Linear(self.output_dim_nets, self.inner_fc_dim)
+        self.fc2 = nn.Linear(self.inner_fc_dim, self.inner_fc_dim)
+        self.fc3 = nn.Linear(self.inner_fc_dim, self.num_classes)
 
 
     def forward(self, input: (Tensor, Tensor)) -> Tensor:
@@ -78,12 +86,16 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
         mutual = lstm_to_multiplication * cnn_output.squeeze(-1)            # [batch, output_dim_nets]
         # print(mutual.shape)
 
-        fc_output = self.fc(mutual)                                         # [batch, num_classes]
         # print(fc_output.shape)
+        x = self.fc1(mutual)
+        x = self.relu(x)
+        self.dropout(x)
 
-        fc_output_relu = self.relu(fc_output)                               # [batch, num_classes]
-        # print(fc_output_relu.shape)
+        x = self.fc2(x)
+        x = self.relu(x)
+        self.dropout(x)
 
+        x = self.fc3(x)
 
-        return self.log_softmax(fc_output_relu)
+        return self.log_softmax(x)
 
