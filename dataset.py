@@ -92,7 +92,7 @@ class MyDataset(Dataset):
 
 
     def __getitem__(self, index: int) -> Tuple:
-        (image_id, question_words_indexes, labels, scores) = self.all_q_a[index]
+        (image_id, question_words_indexes, pad_mask, labels, scores) = self.all_q_a[index]
         # y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
         # y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
@@ -104,7 +104,7 @@ class MyDataset(Dataset):
                     question_words_indexes[i] = self.words2index['<UNK>']
 
         if self.only_lstm:
-            return question_words_indexes, (labels, scores)
+            return question_words_indexes, pad_mask, (labels, scores)
 
         else:
 
@@ -115,7 +115,7 @@ class MyDataset(Dataset):
                 image_tensor = torch.load(f"/home/student/HW2/data/val_tensors/COCO_val2014_{str(image_id).zfill(12)}_tensor")
 
 
-            return image_tensor, question_words_indexes, labels, scores
+            return image_tensor, question_words_indexes, pad_mask, labels, scores
 
 
         # if self.is_Train:
@@ -163,6 +163,7 @@ class MyDataset(Dataset):
 
         for q in questions:
             indexes = []
+            pad_mask = []
 
             for word in preprocess_answer(q['question']).split(' '):
 
@@ -171,11 +172,15 @@ class MyDataset(Dataset):
                 else:
                     indexes.append(self.words2index['<UNK>'])
 
+                pad_mask.append(False)
+
             for i in range(len(preprocess_answer(q['question']).split(' ')), self.max_len_q, 1):
                 indexes.append(self.words2index['<PAD>'])
+                pad_mask.append(True)
+
 
             image_id = q['image_id']
-            questions_words_indexes_by_image_id[image_id] = torch.tensor(indexes)
+            questions_words_indexes_by_image_id[image_id] = (torch.tensor(indexes), torch.tensor(pad_mask))
 
 
         questions_answers_by_image_id = {}
@@ -201,15 +206,15 @@ class MyDataset(Dataset):
         all_q_and_a = []
         for image_id in questions_words_indexes_by_image_id.keys():
 
-            question_words_indexes = questions_words_indexes_by_image_id[image_id]
+            question_words_indexes, pad_mask = questions_words_indexes_by_image_id[image_id]
             labels, scores = questions_answers_by_image_id[image_id]
 
             if self.is_Train:
                 if image_id not in zero_scores_questions:
-                    all_q_and_a.append((image_id, question_words_indexes, labels, scores))
+                    all_q_and_a.append((image_id, question_words_indexes, pad_mask, labels, scores))
 
             else:
-                all_q_and_a.append((image_id, question_words_indexes, labels, scores))
+                all_q_and_a.append((image_id, question_words_indexes, pad_mask, labels, scores))
 
         print(f"{len(all_q_and_a)} examples")
 

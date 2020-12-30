@@ -80,10 +80,8 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
 
         for i, (image_tensor, question_words_indexes, labels, scores) in enumerate(train_loader):
-
             if i % 50 == 0 or i == len(train_loader) - 1:
                 print(f"Epoch: {epoch + 1}, batch: {i+1}/{len(train_loader)} ({cur_time()})")
-
             if torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
                 question_words_indexes = question_words_indexes.cuda()
@@ -97,22 +95,27 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
+
             # print(y_hat.size())
             # print(y_multiple_choice_answers.size())
+
             loss = criterion(y_hat, y_multiple_choice_answers)
-
-            optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
 
-            # Calculate metrics
-            metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
-            metrics['count_norm'] += 1
+            metrics['train_loss'] += loss.item() * image_tensor.size(0)
+
+            if i % 10 == 0 or i == len(train_loader) - 1:
+                # Calculate metrics
+                metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
+                metrics['count_norm'] += 1
+
+                optimizer.step()
+                optimizer.zero_grad()
+
 
             # batch_score = train_utils.compute_score_with_logits(y_hat, y.data).sum()
             # metrics['train_score'] += batch_score.item()
 
-            metrics['train_loss'] += loss.item() * image_tensor.size(0)
 
             y_hat_index = torch.argmax(y_hat, dim=1)
 
