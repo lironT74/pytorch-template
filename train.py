@@ -81,10 +81,9 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
         batch_counter = 1
 
 
-        for i, (x, y) in enumerate(train_loader):
+        for i, (image_tensor, question_words_indexes, labels, scores) in enumerate(train_loader):
             # print(f'Epoch: {epoch+1}, Image {i+1}/{len(train_loader)}')
-            image_tensor, q_words_indexes_tensor = x
-            label_counts, labels, scores = y
+
 
             if torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
@@ -99,51 +98,52 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
-            # print(y_multiple_choice_answers)
-            # print(y_hat)
-            # print(y_hat)
-            # print(torch.argmax(y_hat, dim=1))
-            loss = criterion(y_hat, y_multiple_choice_answers) / batch_size
-            # print(i, loss)
-            # print(loss)
+            loss = criterion(y_hat, y_multiple_choice_answers)
+
+            optimizer.zero_grad()
             loss.backward()
+            optimizer.step()
 
+            # Calculate metrics
+            metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
+            metrics['count_norm'] += 1
 
-            if (i+1) % batch_size == 0 or i == len(train_loader) - 1:
-
-                print(f'Epoch: {epoch+1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
-                batch_counter += 1
-
-                # Calculate metrics
-                metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
-                metrics['count_norm'] += 1
-                # print(metrics['total_norm'] / metrics['count_norm'] )
-
-                optimizer.step()
-                optimizer.zero_grad()
-
-
-            metrics['train_loss'] += loss.item()
-
-            # NOTE! This function compute scores correctly only for one hot encoding representation of the logits
             # batch_score = train_utils.compute_score_with_logits(y_hat, y.data).sum()
+            # metrics['train_score'] += batch_score.item()
+
+            metrics['train_loss'] += loss.item() * image_tensor.size(0)
+
             y_hat_index = torch.argmax(y_hat, dim=1).item()
 
-            if y_hat_index not in label_counts:
-                metrics['train_score'] += 0
-            else:
-                metrics['train_score'] += get_score(label_counts[y_hat_index]) / len(train_loader)
+            occurrences = (y_hat_index == labels).sum(dim=1)
 
+            for occur in occurrences:
+                metrics['train_score'] += get_score(occur.item())
 
-        # Learning rate scheduler step
+            # if y_hat_index not in label_counts:
+            #     metrics['train_score'] += 0
+            # else:
+            #     metrics['train_score'] += get_score(label_counts[y_hat_index]) / len(train_loader)
+
+            if epoch == 0 and i == 0:
+                logger.report_graph(model, (image_tensor, question_words_indexes))
+
         scheduler.step()
 
-
         # Calculate metrics
-        metrics['train_loss'] = batch_size*(metrics['train_loss']/len(train_loader))
+        print(train_loader.dataset)
+        metrics['train_loss'] /= len(train_loader.dataset)
 
+        metrics['train_score'] /= len(train_loader.dataset)
+        metrics['train_score'] *= 100
 
         norm = metrics['total_norm'] / metrics['count_norm']
+
+        model.train(False)
+        metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader)
+        model.train(True)
+
+        epoch_time = time.time() - t
 
 
         model.train(False)
@@ -187,15 +187,13 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
     score = 0
     loss = 0
     lost_counter = 0
-    for i, (x, y) in enumerate(dataloader):
-        # print(f'Validation evaluation: {i+1}/{len(dataloader)}')
-        image_tensor, q_words_indexes_tensor = x
-        label_counts, labels, scores = y
+    for i, (image_tensor, question_words_indexes, labels, scores) in enumerate(dataloader):
+
 
 
         if torch.cuda.is_available():
             image_tensor = image_tensor.cuda()
-            q_words_indexes_tensor = q_words_indexes_tensor.cuda()
+            question_words_indexes = question_words_indexes.cuda()
             labels = labels.cuda()
             scores = scores.cuda()
 
@@ -206,7 +204,7 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
             continue
 
 
-        y_hat = model((image_tensor, q_words_indexes_tensor))
+        y_hat = model((image_tensor, question_words_indexes))
         y_hat_index = torch.argmax(y_hat, dim=1).item()
 
 
@@ -216,11 +214,12 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
 
         loss += criterion(y_hat, y_multiple_choice_answers).item()
 
+        occurrences = (y_hat_index == labels).sum(dim=1)
 
-        if y_hat_index not in label_counts:
-            score += 0
-        else:
-            score += get_score(label_counts[y_hat_index])
+
+        for occur in occurrences:
+            score += get_score(occur.item())
+
 
         if i % 8000 == 0 or i == len(dataloader) - 1:
             print(f'Evaluation at example #{i+1} ({cur_time()})')
@@ -233,3 +232,5 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
     print(f"lost counter = {lost_counter} (data sizer: {len(dataloader)}")
 
     return score, loss
+
+

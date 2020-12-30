@@ -92,14 +92,19 @@ class MyDataset(Dataset):
 
 
     def __getitem__(self, index: int) -> Tuple:
-        (image_id, question_words_indexes, (label_counts, labels, scores)) = self.all_q_a[index]
-        for i in range(len(question_words_indexes)):
-            if question_words_indexes[i] == self.words2index['<PAD>']:
-                break
-            if np.random.binomial(n=1, p=self.emb_dropout):
-                question_words_indexes[i] = self.words2index['<UNK>']
+        (image_id, question_words_indexes, labels, scores) = self.all_q_a[index]
+        # y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
+        # y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
+
+        if self.is_Train:
+            for i in range(len(question_words_indexes)):
+                if question_words_indexes[i] == self.words2index['<PAD>']:
+                    break
+                if np.random.binomial(n=1, p=self.emb_dropout):
+                    question_words_indexes[i] = self.words2index['<UNK>']
+
         if self.only_lstm:
-            return question_words_indexes, (label_counts, labels, scores)
+            return question_words_indexes, labels, scores
 
         else:
 
@@ -110,7 +115,7 @@ class MyDataset(Dataset):
                 image_tensor = torch.load(f"/home/student/HW2/data/val_tensors/COCO_val2014_{str(image_id).zfill(12)}_tensor")
 
 
-            return (image_tensor, question_words_indexes), (label_counts, labels, scores)
+            return image_tensor, question_words_indexes, labels, scores
 
 
         # if self.is_Train:
@@ -159,15 +164,12 @@ class MyDataset(Dataset):
         for q in questions:
             indexes = []
 
-
-
             for word in preprocess_answer(q['question']).split(' '):
 
                 if word in self.words2index:
                     indexes.append(self.words2index[word])
                 else:
                     indexes.append(self.words2index['<UNK>'])
-
 
             for i in range(len(preprocess_answer(q['question']).split(' ')), self.max_len_q, 1):
                 indexes.append(self.words2index['<PAD>'])
@@ -178,26 +180,30 @@ class MyDataset(Dataset):
 
         questions_answers_by_image_id = {}
 
+        zero_scores_questions = []
         for target in self.target_labels:
 
-            label_counts, labels, scores = target['label_counts'], target['labels'], target['scores']
+            # label_counts, labels, scores = target['label_counts'], target['labels'], target['scores']
+            # questions_answers_by_image_id[target['image_id']] = (label_counts, torch.tensor(labels), torch.tensor(scores))
 
-            questions_answers_by_image_id[target['image_id']] = (label_counts, torch.tensor(labels), torch.tensor(scores))
+            labels, scores = target['labels'], target['scores']
+            if len(scores) == 0:
+                zero_scores_questions.append(target['image_id'])
 
+            questions_answers_by_image_id[target['image_id']] = (torch.tensor(labels), torch.tensor(scores))
 
         all_q_and_a = []
         for image_id in questions_words_indexes_by_image_id.keys():
 
             question_words_indexes = questions_words_indexes_by_image_id[image_id]
-            label_counts, labels, scores = questions_answers_by_image_id[image_id]
-
+            labels, scores = questions_answers_by_image_id[image_id]
 
             if self.is_Train:
-                if len(labels) > 0:
-                    all_q_and_a.append((image_id, question_words_indexes, (label_counts, labels, scores)))
-            else:
-                all_q_and_a.append((image_id, question_words_indexes, (label_counts, labels, scores)))
+                if image_id not in zero_scores_questions:
+                    all_q_and_a.append((image_id, question_words_indexes, labels, scores))
 
+            else:
+                all_q_and_a.append((image_id, question_words_indexes, labels, scores))
 
         print(f"{len(all_q_and_a)} examples")
 
@@ -207,6 +213,7 @@ class MyDataset(Dataset):
         else:
             with open(f'/home/student/HW2/data/data_batches_val.pkl', 'wb') as f:
                 pickle.dump(all_q_and_a, f)
+
 
 
 

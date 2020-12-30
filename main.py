@@ -50,7 +50,7 @@ def main(cfg: DictConfig) -> None:
 
     eval_loader = DataLoader(val_dataset, batch_size=1, shuffle=False,
                               num_workers=cfg['main']['num_workers'])
-    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True,
+    train_loader = DataLoader(train_dataset, batch_size=cfg['train']['batch_size'], shuffle=True,
                               num_workers=cfg['main']['num_workers'])
 
     # Init model
