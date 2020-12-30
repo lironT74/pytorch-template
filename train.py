@@ -77,27 +77,28 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
         t = time.time()
         metrics = train_utils.get_zeroed_metrics_dict()
         optimizer.zero_grad()
-        print(f"Epoch: {epoch+1}  ({cur_time()})")
-        batch_counter = 1
 
 
         for i, (image_tensor, question_words_indexes, labels, scores) in enumerate(train_loader):
-            # print(f'Epoch: {epoch+1}, Image {i+1}/{len(train_loader)}')
 
+            if i % 50 == 0 or i == len(train_loader) - 1:
+                print(f"Epoch: {epoch + 1}, batch: {i+1}/{len(train_loader)} ({cur_time()})")
 
             if torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
-                q_words_indexes_tensor = q_words_indexes_tensor.cuda()
+                question_words_indexes = question_words_indexes.cuda()
                 labels = labels.cuda()
                 scores = scores.cuda()
 
+            image_tensor = image_tensor.squeeze(1)
+            # print(f"------------> image size: {image_tensor.size()}")
 
-
-            y_hat = model((image_tensor, q_words_indexes_tensor))
+            y_hat = model((image_tensor, question_words_indexes))
 
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
-
+            # print(y_hat.size())
+            # print(y_multiple_choice_answers.size())
             loss = criterion(y_hat, y_multiple_choice_answers)
 
             optimizer.zero_grad()
@@ -113,9 +114,9 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
             metrics['train_loss'] += loss.item() * image_tensor.size(0)
 
-            y_hat_index = torch.argmax(y_hat, dim=1).item()
+            y_hat_index = torch.argmax(y_hat, dim=1)
 
-            occurrences = (y_hat_index == labels).sum(dim=1)
+            occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
 
             for occur in occurrences:
                 metrics['train_score'] += get_score(occur.item())
@@ -125,26 +126,18 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
             # else:
             #     metrics['train_score'] += get_score(label_counts[y_hat_index]) / len(train_loader)
 
-            if epoch == 0 and i == 0:
-                logger.report_graph(model, (image_tensor, question_words_indexes))
+            # if epoch == 0 and i == 0:
+            #     logger.report_graph(model, (image_tensor, question_words_indexes))
 
         scheduler.step()
 
         # Calculate metrics
-        print(train_loader.dataset)
         metrics['train_loss'] /= len(train_loader.dataset)
 
         metrics['train_score'] /= len(train_loader.dataset)
         metrics['train_score'] *= 100
 
         norm = metrics['total_norm'] / metrics['count_norm']
-
-        model.train(False)
-        metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader)
-        model.train(True)
-
-        epoch_time = time.time() - t
-
 
         model.train(False)
         with torch.no_grad():
@@ -190,7 +183,6 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
     for i, (image_tensor, question_words_indexes, labels, scores) in enumerate(dataloader):
 
 
-
         if torch.cuda.is_available():
             image_tensor = image_tensor.cuda()
             question_words_indexes = question_words_indexes.cuda()
@@ -205,31 +197,28 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
 
 
         y_hat = model((image_tensor, question_words_indexes))
-        y_hat_index = torch.argmax(y_hat, dim=1).item()
+        y_hat_index = torch.argmax(y_hat, dim=1)
 
 
         y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
 
         y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
-        loss += criterion(y_hat, y_multiple_choice_answers).item()
+        loss += criterion(y_hat, y_multiple_choice_answers)
 
-        occurrences = (y_hat_index == labels).sum(dim=1)
+        occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
 
-
-        for occur in occurrences:
-            score += get_score(occur.item())
-
+        score += get_score(occurrences[0])
 
         if i % 8000 == 0 or i == len(dataloader) - 1:
-            print(f'Evaluation at example #{i+1} ({cur_time()})')
+            print(f'Evaluation is at example #{i+1} ({cur_time()})')
 
 
     score = score / (len(dataloader))
 
     loss = loss / (len(dataloader) - lost_counter)
 
-    print(f"lost counter = {lost_counter} (data sizer: {len(dataloader)}")
+    print(f"lost counter = {lost_counter} (data size: {len(dataloader)}")
 
     return score, loss
 

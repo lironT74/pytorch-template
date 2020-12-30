@@ -63,34 +63,48 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
         seq_length = question.shape[1]
 
         # Pass word_idx and pos_idx through their embedding layers
+        # print('question', question.size())
         word_vec = self.word_embedding(question)        # [batch, seq, emb_dim]
+        # print('word vec', word_vec.size())
 
         output_lstm, (_, _) = self.question_model(word_vec)                # [batch_size, seq_len, output_dim_nets]
+        # print('output_lstm', output_lstm.size())
         # print(output_lstm.shape)
 
         image = image.squeeze(0)
+        # print('image', image.size(0))
         # print(image_path.shape)
 
         cnn_output = self.image_model(image)                                # [batch, output_dim_nets]
+        # print('cnn_output', cnn_output.size())
         # print(cnn_output.shape)
 
         cnn_output = cnn_output.unsqueeze(-1)                               # [batch, output_dim_nets, 1]
         # print(cnn_output.shape)
 
         attention = torch.matmul(output_lstm, cnn_output).squeeze(-1)       # [batch, seq_length]
+        # print('attention', attention.size())
         # print(attention.shape)
 
         scalars = self.soft_max(attention)                                  # [batch, seq_length]
+        # print('scalars', scalars.size())
+
         # print(scalars.shape)
 
-        lstm_to_multiplication = torch.matmul(scalars, output_lstm).squeeze(1)  # [batch, output_dim_nets]
+        lstm_to_multiplication = torch.matmul(scalars.unsqueeze(1), output_lstm).squeeze(1)  # [batch, output_dim_nets]
+        # print('lstm_to_multiplication', lstm_to_multiplication.size())
+
         # print(lstm_to_multiplication.shape)
 
         mutual = lstm_to_multiplication * cnn_output.squeeze(-1)            # [batch, output_dim_nets]
+        # print('mutual', mutual.size())
+
         # print(mutual.shape)
 
         # print(fc_output.shape)
         x = self.fc1(mutual)
+        # print('fc1', x.size())
+
         x = self.relu(x)
         self.dropout(x)
 
@@ -99,6 +113,7 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
         self.dropout(x)
 
         x = self.fc3(x)
+        # print('fc3_x', x.size())
 
         return self.log_softmax(x)
 

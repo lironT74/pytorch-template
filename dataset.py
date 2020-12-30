@@ -104,7 +104,7 @@ class MyDataset(Dataset):
                     question_words_indexes[i] = self.words2index['<UNK>']
 
         if self.only_lstm:
-            return question_words_indexes, labels, scores
+            return question_words_indexes, (labels, scores)
 
         else:
 
@@ -187,8 +187,14 @@ class MyDataset(Dataset):
             # questions_answers_by_image_id[target['image_id']] = (label_counts, torch.tensor(labels), torch.tensor(scores))
 
             labels, scores = target['labels'], target['scores']
+
             if len(scores) == 0:
                 zero_scores_questions.append(target['image_id'])
+
+            if self.is_Train:
+                for i in range(len(labels), 10):
+                    labels.append(-1)
+                    scores.append(-1.0)
 
             questions_answers_by_image_id[target['image_id']] = (torch.tensor(labels), torch.tensor(scores))
 
