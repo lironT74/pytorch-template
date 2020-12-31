@@ -16,11 +16,8 @@ class TransofrmerEncoder(nn.Module, metaclass=ABCMeta):
 
 
         self.word_embedding = nn.Embedding(num_embeddings=word_vocab_size, embedding_dim=word_emb_dim)
-
-
         self.endocer_layer = nn.TransformerEncoderLayer(d_model=word_emb_dim, nhead=nhead)
         self.transformer_encoder = nn.TransformerEncoder(self.endocer_layer, num_layers=4)
-
 
 
     def forward(self, input: (Tensor, Tensor)) -> Tensor:
@@ -28,8 +25,7 @@ class TransofrmerEncoder(nn.Module, metaclass=ABCMeta):
         batch_size = question.shape[0]
         seq_length = question.shape[1]
 
-        # Pass word_idx and pos_idx through their embedding layers
-        word_vec = self.word_embedding(question)  # [batch, seq, emb_dim]
+        word_vec = self.word_embedding(question)
         word_vec = word_vec.view(seq_length, batch_size, -1)
 
         output = self.transformer_encoder(word_vec, src_key_padding_mask = pad_mask)

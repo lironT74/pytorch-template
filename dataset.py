@@ -65,6 +65,7 @@ class MyDataset(Dataset):
 
         self.emb_dropout = emb_dropout
 
+
         if not is_pre:
             with open(self.all_q_a_path, 'rb') as f:
                 print(self.all_q_a_path)
@@ -93,15 +94,16 @@ class MyDataset(Dataset):
 
     def __getitem__(self, index: int) -> Tuple:
         (image_id, question_words_indexes, pad_mask, labels, scores) = self.all_q_a[index]
+
         # y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
         # y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
+        # if self.is_Train:
+            # for i in range(len(question_words_indexes)):
+            #     if question_words_indexes[i] == self.words2index['<PAD>']:
+            #         break
+            #     if np.random.binomial(n=1, p=self.emb_dropout):
+            #         question_words_indexes[i] = self.words2index['<UNK>']
 
-        if self.is_Train:
-            for i in range(len(question_words_indexes)):
-                if question_words_indexes[i] == self.words2index['<PAD>']:
-                    break
-                if np.random.binomial(n=1, p=self.emb_dropout):
-                    question_words_indexes[i] = self.words2index['<UNK>']
 
         if self.only_lstm:
             return question_words_indexes, pad_mask, (labels, scores)
@@ -132,7 +134,6 @@ class MyDataset(Dataset):
         #     image_tensor = image_tensor.squeeze()
         #     image_tensor = torch.stack([image_tensor, image_tensor, image_tensor])
         #     image_tensor = image_tensor.unsqueeze(0)
-        #
         #
         # return (image_tensor, question_words_indexes), (label_counts, labels, scores)
 
@@ -202,6 +203,7 @@ class MyDataset(Dataset):
                     scores.append(-1.0)
 
             questions_answers_by_image_id[target['image_id']] = (torch.tensor(labels), torch.tensor(scores))
+
 
         all_q_and_a = []
         for image_id in questions_words_indexes_by_image_id.keys():
@@ -297,5 +299,5 @@ class MyDataset(Dataset):
 
 if __name__ == '__main__':
     dataset_train = MyDataset(is_Train=True, is_pre=True)
-    dataset_val = MyDataset(is_Train=False, is_pre=True)
+    # dataset_val = MyDataset(is_Train=False, is_pre=True)
 

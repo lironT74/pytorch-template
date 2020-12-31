@@ -37,7 +37,9 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
         #                        bidirectional=True,
         #                        batch_first=True)
 
-        self.question_model = TransofrmerEncoder(word_vocab_size=word_vocab_size, word_emb_dim=word_emb_dim, nhead = nhead)
+        self.question_model = TransofrmerEncoder(word_vocab_size=word_vocab_size,
+                                                 word_emb_dim=self.word_emb_dim,
+                                                 nhead = nhead)
 
         self.relu = nn.ReLU()
 

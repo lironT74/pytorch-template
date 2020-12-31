@@ -55,9 +55,7 @@ class VGG19_E(nn.Module):
         self.conv5_4 = nn.Conv2d(512, 512, 3, 1, 1)
         self.batch_norm5_4 = nn.BatchNorm2d(512)
 
-
         self.pool = nn.MaxPool2d(2, 2)
-
 
         self.fc_dimension = 7 * 7 * 512
         self.inner_fc_dim = 2048
@@ -155,8 +153,8 @@ class VGG19_E(nn.Module):
 
         x_before_fc = x
 
-
-        x = torch.flatten(x, start_dim=1)
+        # x = torch.flatten(x, start_dim=1)
+        x = x.view(-1, self.fc_dimension)
 
 
         x = self.fc1(x)
@@ -166,7 +164,6 @@ class VGG19_E(nn.Module):
         x = self.fc2(x)
         x = self.relu(x)
         self.dropout2(x)
-
 
         x = self.fc3(x)
 

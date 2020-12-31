@@ -42,16 +42,24 @@ def main(cfg: DictConfig) -> None:
     main_utils.set_seed(cfg['main']['seed'])
 
     # Load dataset
+
     val_dataset = MyDataset(is_Train=False)
+    eval_loader = DataLoader(val_dataset,
+                             batch_size=1,
+                             shuffle=False,
+                             num_workers=cfg['main']['num_workers'])
+
+
     train_dataset = MyDataset(is_Train=True)
+    train_loader = DataLoader(train_dataset,
+                              batch_size=cfg['train']['batch_size'],
+                              shuffle=True,
+                              num_workers=cfg['main']['num_workers'])
+
+
     word_vocab_size = train_dataset.num_of_words
-    print('word vocab size:', word_vocab_size)
     num_clases = train_dataset.num_of_labels
 
-    eval_loader = DataLoader(val_dataset, batch_size=1, shuffle=False,
-                              num_workers=cfg['main']['num_workers'])
-    train_loader = DataLoader(train_dataset, batch_size=cfg['train']['batch_size'], shuffle=True,
-                              num_workers=cfg['main']['num_workers'])
 
     # Init model
 
