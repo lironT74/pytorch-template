@@ -9,7 +9,7 @@ class TransofrmerEncoder(nn.Module, metaclass=ABCMeta):
     """
     def __init__(self,
                  word_vocab_size: int = 100000,
-                 word_emb_dim: int = 512,
+                 word_emb_dim: int = 128,
                  nhead: int= 4):
 
         super(TransofrmerEncoder, self).__init__()

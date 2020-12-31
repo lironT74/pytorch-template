@@ -16,7 +16,7 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
     """
     def __init__(self,
                  word_vocab_size: int = 100000,
-                 word_emb_dim: int = 512,
+                 word_emb_dim: int = 128,
                  num_classes: int = 3219,
                  nhead: int = 4,
                  dropout: float = 0.2):
@@ -49,7 +49,7 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
 
         self.dropout = nn.Dropout(dropout, inplace=True)
 
-        self.inner_fc_dim = 2048
+        self.inner_fc_dim = 4096
 
         self.fc1 = weight_norm(nn.Linear(2*self.word_emb_dim, self.inner_fc_dim), dim=None)
         self.dropout1 = nn.Dropout(dropout, inplace=True)
@@ -77,7 +77,7 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
         question_outputs = self.question_model((question, pad_mask))
         question_outputs = question_outputs.view(batch_size, seq_length, -1)
 
-        image = image.squeeze(0)
+        # image = image.squeeze(0)
         # print('image', image.size(0))
         # print(image_path.shape)
 

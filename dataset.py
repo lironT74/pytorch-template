@@ -299,5 +299,5 @@ class MyDataset(Dataset):
 
 if __name__ == '__main__':
     dataset_train = MyDataset(is_Train=True, is_pre=True)
-    # dataset_val = MyDataset(is_Train=False, is_pre=True)
+    dataset_val = MyDataset(is_Train=False, is_pre=True)
 
