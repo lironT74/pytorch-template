@@ -45,11 +45,11 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         self.inner_fc_dim = 4096
 
-        self.fc_dimension = 7 * 7 * 512
-        self.inner_fc_dim = 4096
-
         layers_classifier = [
             weight_norm(nn.Linear(2*self.word_emb_dim, self.inner_fc_dim), dim=None),
+            nn.ReLU(),
+            nn.Dropout(dropout, inplace=True),
+            weight_norm(nn.Linear(self.inner_fc_dim, self.inner_fc_dim), dim=None),
             nn.ReLU(),
             nn.Dropout(dropout, inplace=True),
             weight_norm(nn.Linear(self.inner_fc_dim, self.num_classes), dim=None)

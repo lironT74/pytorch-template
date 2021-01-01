@@ -22,6 +22,7 @@ def cur_time():
     cur_time = now.strftime("%d/%m/%Y %H:%M:%S")
     return cur_time
 
+EPOCH_PRINT = 300
 
 
 def get_metrics(best_eval_score: float, eval_score: float, train_loss: float) -> Metrics:
@@ -37,8 +38,13 @@ def get_metrics(best_eval_score: float, eval_score: float, train_loss: float) ->
             'Metrics/LastLoss': train_loss}
 
 
-def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, train_params: TrainParams,
-          logger: TrainLogger, batch_size: int) -> Metrics:
+def train(model: nn.Module,
+          train_loader: DataLoader,
+          eval_loader: DataLoader,
+          eval_loader_no_answers: DataLoader,
+          train_params: TrainParams,
+          logger: TrainLogger) -> Metrics:
+
     """
     Training procedure. Change each part if needed (optimizer, loss, etc.)
     :param model:
@@ -48,15 +54,6 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
     :param logger:
     :return:
     """
-
-    # for i, (x,y) in enumerate(train_loader):
-    #     print(f'Liron homo #{i+1} ({cur_time()})')
-    #     image_tensor, q_words_indexes_tensor = x
-    #     label_counts, labels, scores = y
-    #     assert len(labels) > 0, "Labels is empty"
-    #     assert len(scores) > 0, 'Scores is empty'
-
-
 
     metrics = train_utils.get_zeroed_metrics_dict()
     best_eval_score = 0
@@ -70,8 +67,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                                                 gamma=train_params.lr_gamma)
     criterion = nn.NLLLoss()
 
-
-    print("----------------------------->", len(train_loader.dataset))
+    print(f"no answers examples in eval {len(eval_loader_no_answers.dataset)}")
 
     for epoch in tqdm(range(train_params.num_epochs)):
 
@@ -80,12 +76,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
         metrics = train_utils.get_zeroed_metrics_dict()
         optimizer.zero_grad()
 
-        batch_counter = 0
-
         for i, (image_tensor, question_words_indexes, pad_mask, labels, scores) in enumerate(train_loader):
-
-            # if i % 50 == 0:
-            #     print(f"Epoch: {epoch + 1}, batch: {i+1}/{len(train_loader)} ({cur_time()})")
 
             if torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
@@ -94,36 +85,30 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 scores = scores.cuda()
                 pad_mask = pad_mask.cuda()
 
-            image_tensor = image_tensor.squeeze(1)
 
+            if i>0:
+                break
+
+            if (i+1) % EPOCH_PRINT == 0:
+                print(f"Epoch: {epoch + 1}, batch: {i+1}/{len(train_loader)} ({cur_time()})")
+
+            image_tensor = image_tensor.squeeze(1)
 
             y_hat = model((image_tensor, question_words_indexes, pad_mask))
             y_hat_index = torch.argmax(y_hat, dim=1)
 
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
-
-            # print(labels.size())
-            # print(labels.shape[0])
-            # print(y_multiple_choice_answers_indexes.size())
-
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
-            # print((y_hat, y_multiple_choice_answers))
-
             loss = criterion(y_hat, y_multiple_choice_answers)
+            optimizer.zero_grad()
             loss.backward()
+            optimizer.step()
+
+            metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
+            metrics['count_norm'] += 1
 
             metrics['train_loss'] += loss.item() * image_tensor.size(0)
-
-            if i % 15 == 0 or i == len(train_loader) - 1:
-                # Calculate metrics
-                print(f"Epoch: {epoch + 1}, batch: {i + 1}/{len(train_loader)}: --------> GRADIENT STEP ({cur_time()})")
-
-                metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
-                metrics['count_norm'] += 1
-
-                optimizer.step()
-                optimizer.zero_grad()
 
 
             occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
@@ -132,40 +117,18 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
                 metrics['train_score'] += get_score(occur.item())
 
 
-            # loss = criterion(y_hat, y_multiple_choice_answers) / batch_size
-            # loss.backward()
-            #
-            # if (i + 1) % batch_size == 0 or i == len(train_loader) - 1:
-            #     print(f'Epoch: {epoch + 1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
-            #     batch_counter += 1
-            #
-            #     # Calculate metrics
-            #     metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
-            #     metrics['count_norm'] += 1
-            #
-            #     optimizer.step()
-            #     optimizer.zero_grad()
-            #
-            # metrics['train_loss'] += loss.item()
-            #
-            # occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
-            # for occur in occurrences:
-            #     metrics['train_score'] += get_score(occur.item()) / len(train_loader)
-
-
         scheduler.step()
-
 
         # # Calculate metrics
         metrics['train_loss'] /= len(train_loader.dataset)
-        metrics['train_score'] /= len(train_loader.dataset)
 
+        metrics['train_score'] /= len(train_loader.dataset)
 
         norm = metrics['total_norm'] / metrics['count_norm']
 
         model.train(False)
         with torch.no_grad():
-            metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader, criterion)
+            metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader, criterion, eval_loader_no_answers)
         model.train(True)
 
 
@@ -194,7 +157,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
 
 @torch.no_grad()
-def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
+def evaluate(model: nn.Module, evaluation_dataloader, criterion, eval_loader_no_answers) -> Scores:
     """
     Evaluate a model without gradient calculation
     :param model: instance of a model
@@ -203,47 +166,65 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
     """
     score = 0
     loss = 0
-    lost_counter = 0
-    for i, (image_tensor, question_words_indexes, pad_mask, labels, scores) in enumerate(dataloader):
 
+    #
+    # for i, (image_tensor, question_words_indexes, pad_mask, labels, scores) in enumerate(evaluation_dataloader):
+
+          # if torch.cuda.is_available():
+          #       image_tensor = image_tensor.cuda()
+          #       question_words_indexes = question_words_indexes.cuda()
+          #       labels = labels.cuda()
+          #       scores = scores.cuda()
+          #       pad_mask = pad_mask.cuda()
+
+    #     image_tensor = image_tensor.squeeze(1)
+    #
+    #     y_hat = model((image_tensor, question_words_indexes, pad_mask))
+    #     y_hat_index = torch.argmax(y_hat, dim=1)
+    #
+    #     y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
+    #     y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
+    #
+    #     loss += criterion(y_hat, y_multiple_choice_answers)
+    #
+    #     occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
+    #
+    #     for occur in occurrences:
+    #         score += get_score(occur.item())
+    #
+    #     if (i + 1) % EPOCH_PRINT == 0:
+    #         print(f"---> Evaluation, batch: {i+1}/{len(evaluation_dataloader)} ({cur_time()})")
+
+
+
+    for i, (image_tensor, question_words_indexes, pad_mask, labels, scores) in enumerate(eval_loader_no_answers):
+
+        print(image_tensor.device)
 
         if torch.cuda.is_available():
-            image_tensor = image_tensor.cuda()
-            question_words_indexes = question_words_indexes.cuda()
-            labels = labels.cuda()
-            scores = scores.cuda()
-            pad_mask = pad_mask.cuda()
+                image_tensor = image_tensor.cuda()
+                question_words_indexes = question_words_indexes.cuda()
+                labels = labels.cuda()
+                scores = scores.cuda()
+                pad_mask = pad_mask.cuda()
 
-        if scores.nelement() == 0:
-            score += 0
-            lost_counter += 1
-            continue
+        image_tensor = image_tensor.squeeze(1)
 
-
-        # image_tensor = image_tensor.squeeze(0)
         y_hat = model((image_tensor, question_words_indexes, pad_mask))
-        y_hat_index = torch.argmax(y_hat, dim=1)
-
 
         y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
         y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
         loss += criterion(y_hat, y_multiple_choice_answers)
 
-        occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
-
-        score += get_score(occurrences[0])
-
-
-        if i % 8000 == 0 or i == len(dataloader) - 1:
-            print(f'Evaluation is at example #{i+1} ({cur_time()})')
+        if (i + 1) % EPOCH_PRINT == 0:
+            print(f"---> Evaluation no answers, batch: {i+1}/{len(evaluation_dataloader)} ({cur_time()})")
 
 
-    score = score / (len(dataloader))
 
-    loss = loss / (len(dataloader) - lost_counter)
+    score = score / (len(evaluation_dataloader.dataset))
 
-    print(f"lost counter = {lost_counter} (data size: {len(dataloader)}")
+    loss = loss / (len(evaluation_dataloader.dataset) - len(eval_loader_no_answers.dataset))
 
     return score, loss
 
