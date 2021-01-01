@@ -95,9 +95,9 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
             question_outputs = torch.mean(question_outputs, dim=0)
 
 
-        mutual = torch.cat((question_outputs, cnn_output), dim=1)        # [batch, output_dim_nets]
+        both = torch.cat((question_outputs, cnn_output), dim=1)        # [batch, output_dim_nets]
 
-        output = self.classifier(mutual)
+        output = self.classifier(both)
 
         output = self.log_softmax(output)
 
