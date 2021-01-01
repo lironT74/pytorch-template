@@ -21,7 +21,7 @@ train:
   grad_clip: 0.25
   dropout: 0.2
   num_hid: 20
-  batch_size: 10
+  batch_size: 12
   save_model: True
   lr:
     lr_value: 1e-3

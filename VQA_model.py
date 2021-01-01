@@ -66,6 +66,7 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
         """
         image, question, pad_mask = input
         batch_size = question.shape[0]
+        seq_length = question.shape[1]
 
         question_outputs = self.question_model((question, pad_mask))
 
@@ -73,20 +74,20 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
         cnn_output = self.image_model(image)                                # [batch, output_dim_nets]
 
         if self.mean_with_attention:
-            print('cnn_output', cnn_output.size())
-            print(cnn_output.shape)
+            question_outputs = question_outputs.view(batch_size, seq_length, -1)
+            # print('question_outputs', question_outputs.size())
 
             cnn_output = cnn_output.unsqueeze(-1)                                   # [batch, output_dim_nets, 1]
-            print('cnn_output', cnn_output.size())
+            # print('cnn_output', cnn_output.size())
 
             attention = torch.matmul(question_outputs, cnn_output).squeeze(-1)       # [batch, seq_length]
-            print('attention', attention.size())
+            # print('attention', attention.size())
 
             scalars = self.soft_max(attention)                                          # [batch, seq_length]
-            print('scalars', scalars.size())
+            # print('scalars', scalars.size())
 
             question_outputs = torch.matmul(scalars.unsqueeze(1), question_outputs).squeeze(1)  # [batch, output_dim_nets]
-            print('question_outputs', question_outputs.size())
+            # print('question_outputs', question_outputs.size())
 
             cnn_output = cnn_output.squeeze(-1)
 
