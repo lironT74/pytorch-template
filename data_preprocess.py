@@ -219,9 +219,10 @@ def compute_target(answers_dset, ans2label, name, cache_root):
             if answer not in ans2label:
                 continue
 
-            labels.append(ans2label[answer])
             score = get_score(answer_count[answer])
-            scores.append(score)
+            for i in range(answer_count[answer]):
+                labels.append(ans2label[answer])
+                scores.append(score)
 
 
         if len(scores) == 0:
@@ -245,7 +246,6 @@ def compute_target(answers_dset, ans2label, name, cache_root):
 
     print(f"zero scores {scores_0}")
 
-    print(cache_root)
     # utils.create_dir(cache_root)
 
     if not os.path.exists(f"{cache_root}/"):
@@ -282,11 +282,9 @@ def load_v2_answers():
         val_answers = json.load(f)['annotations']
 
 
-
     occurence = filter_answers(train_answers, 6)
 
     ans2label = create_ans2label(occurence, 'trainval', "data/cache")
-
     print('train')
 
     compute_target(train_answers, ans2label, 'train', "data/cache")
@@ -358,8 +356,8 @@ def v2_questions_words_dicts():
 
 
 def main():
-    v2_questions_words_dicts()
-    # load_v2_answers()
+    # v2_questions_words_dicts()
+    load_v2_answers()
 
 
 if __name__ == '__main__':

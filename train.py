@@ -96,17 +96,26 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
             image_tensor = image_tensor.squeeze(1)
 
+
             y_hat = model((image_tensor, question_words_indexes, pad_mask))
             y_hat_index = torch.argmax(y_hat, dim=1)
+
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
+
+            # print(labels.size())
+            # print(labels.shape[0])
+            # print(y_multiple_choice_answers_indexes.size())
+
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
+
+            # print((y_hat, y_multiple_choice_answers))
 
             loss = criterion(y_hat, y_multiple_choice_answers)
             loss.backward()
 
             metrics['train_loss'] += loss.item() * image_tensor.size(0)
 
-            if i % 10 == 0:
+            if i % 15 == 0 or i == len(train_loader) - 1:
                 # Calculate metrics
                 print(f"Epoch: {epoch + 1}, batch: {i + 1}/{len(train_loader)}: --------> GRADIENT STEP ({cur_time()})")
 
@@ -118,6 +127,7 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
 
 
             occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
+
             for occur in occurrences:
                 metrics['train_score'] += get_score(occur.item())
 
@@ -210,7 +220,7 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
             continue
 
 
-        image_tensor = image_tensor.squeeze(0)
+        # image_tensor = image_tensor.squeeze(0)
         y_hat = model((image_tensor, question_words_indexes, pad_mask))
         y_hat_index = torch.argmax(y_hat, dim=1)
 

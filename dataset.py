@@ -194,6 +194,9 @@ class MyDataset(Dataset):
 
             labels, scores = target['labels'], target['scores']
 
+            labels = [int(i) for i in labels]
+            scores = [float(i) for i in scores]
+
             if len(scores) == 0:
                 zero_scores_questions.append(target['image_id'])
 

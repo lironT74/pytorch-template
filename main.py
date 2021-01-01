@@ -17,7 +17,7 @@ from utils import main_utils, train_utils
 from utils.train_logger import TrainLogger
 from omegaconf import DictConfig, OmegaConf
 from VQA_model_first import VQA
-from VQA_model_attention import VQA_Attention
+from VQA_model import VQA_model
 from torchvision import models, transforms
 from PIL import Image
 from multiprocessing import Pool
@@ -63,7 +63,7 @@ def main(cfg: DictConfig) -> None:
 
     # Init model
 
-    model = VQA_Attention(word_vocab_size=word_vocab_size, num_classes=num_clases)
+    model = VQA_model(word_vocab_size=word_vocab_size, num_classes=num_clases)
 
     # lstm_model = LSTM(word_vocab_size=word_vocab_size, num_classes=num_clases)
 
