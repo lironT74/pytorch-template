@@ -77,7 +77,7 @@ class VQA_Attention(nn.Module, metaclass=ABCMeta):
         question_outputs = self.question_model((question, pad_mask))
         question_outputs = question_outputs.view(batch_size, seq_length, -1)
 
-        # image = image.squeeze(0)
+        image = image.squeeze(0)
         # print('image', image.size(0))
         # print(image_path.shape)
 

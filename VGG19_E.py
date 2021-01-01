@@ -11,27 +11,27 @@ class VGG19_E(nn.Module):
         self.output_dimension = output_dimension
 
         self.conv_expand_1 = nn.Conv2d(3, 64, kernel_size=1, stride=1, bias=False)
-        self.conv1_1 = nn.Conv2d(in_channels, 64, 9, 1, 4)
+        self.conv1_1 = nn.Conv2d(in_channels, 64, 3, 1, 1)
         self.batch_norm1_1 = nn.BatchNorm2d(64)
-        self.conv1_2 = nn.Conv2d(64, 64, 9, 1, 4)
+        self.conv1_2 = nn.Conv2d(64, 64,  3, 1, 1)
         self.batch_norm1_2 = nn.BatchNorm2d(64)
 
 
         self.conv_expand_2 = nn.Conv2d(64, 128, kernel_size=1, stride=1, bias=False)
-        self.conv2_1 = nn.Conv2d(64, 128, 7, 1, 3)
+        self.conv2_1 = nn.Conv2d(64, 128,  3, 1, 1)
         self.batch_norm2_1 = nn.BatchNorm2d(128)
-        self.conv2_2 = nn.Conv2d(128, 128, 7, 1, 3)
+        self.conv2_2 = nn.Conv2d(128, 128,  3, 1, 1)
         self.batch_norm2_2 = nn.BatchNorm2d(128)
 
 
         self.conv_expand_3 = nn.Conv2d(128, 256, kernel_size=1, stride=1, bias=False)
-        self.conv3_1 = nn.Conv2d(128, 256, 5, 1, 2)
+        self.conv3_1 = nn.Conv2d(128, 256,  3, 1, 1)
         self.batch_norm3_1 = nn.BatchNorm2d(256)
-        self.conv3_2 = nn.Conv2d(256, 256, 5, 1, 2)
+        self.conv3_2 = nn.Conv2d(256, 256,  3, 1, 1)
         self.batch_norm3_2 = nn.BatchNorm2d(256)
-        self.conv3_3 = nn.Conv2d(256, 256, 5, 1, 2)
+        self.conv3_3 = nn.Conv2d(256, 256,  3, 1, 1)
         self.batch_norm3_3 = nn.BatchNorm2d(256)
-        self.conv3_4 = nn.Conv2d(256, 256, 5, 1, 2)
+        self.conv3_4 = nn.Conv2d(256, 256,  3, 1, 1)
         self.batch_norm3_4 = nn.BatchNorm2d(256)
 
 

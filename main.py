@@ -52,7 +52,7 @@ def main(cfg: DictConfig) -> None:
 
     train_dataset = MyDataset(is_Train=True)
     train_loader = DataLoader(train_dataset,
-                              batch_size=1,
+                              batch_size=cfg['train']['batch_size'],
                               shuffle=True,
                               num_workers=cfg['main']['num_workers'])
 

@@ -101,53 +101,54 @@ def train(model: nn.Module, train_loader: DataLoader, eval_loader: DataLoader, t
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
             y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
-
-            # loss = criterion(y_hat, y_multiple_choice_answers)
-            # optimizer.zero_grad()
-            # loss.backward()
-            # optimizer.step()
-            #
-            # # Calculate metrics
-            # metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
-            # metrics['count_norm'] += 1
-            #
-            #
-            # y_hat_index = torch.argmax(y_hat, dim=1)
-            # occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
-            # for occur in occurrences:
-            #     metrics['train_score'] += get_score(occur.item())
-            #
-            # metrics['train_loss'] += loss.item() * image_tensor.size(0)
-
-
-            loss = criterion(y_hat, y_multiple_choice_answers) / batch_size
+            loss = criterion(y_hat, y_multiple_choice_answers)
             loss.backward()
 
-            if (i + 1) % batch_size == 0 or i == len(train_loader) - 1:
-                print(f'Epoch: {epoch + 1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
-                batch_counter += 1
+            metrics['train_loss'] += loss.item() * image_tensor.size(0)
 
+            if i % 10 == 0:
                 # Calculate metrics
+                print(f"Epoch: {epoch + 1}, batch: {i + 1}/{len(train_loader)}: --------> GRADIENT STEP ({cur_time()})")
+
                 metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
                 metrics['count_norm'] += 1
 
                 optimizer.step()
                 optimizer.zero_grad()
 
-            metrics['train_loss'] += loss.item()
 
             occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
             for occur in occurrences:
-                metrics['train_score'] += get_score(occur.item()) / len(train_loader)
+                metrics['train_score'] += get_score(occur.item())
+
+
+            # loss = criterion(y_hat, y_multiple_choice_answers) / batch_size
+            # loss.backward()
+            #
+            # if (i + 1) % batch_size == 0 or i == len(train_loader) - 1:
+            #     print(f'Epoch: {epoch + 1}, Batch {batch_counter}/{len(train_loader) // batch_size + 1} ({cur_time()})')
+            #     batch_counter += 1
+            #
+            #     # Calculate metrics
+            #     metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
+            #     metrics['count_norm'] += 1
+            #
+            #     optimizer.step()
+            #     optimizer.zero_grad()
+            #
+            # metrics['train_loss'] += loss.item()
+            #
+            # occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
+            # for occur in occurrences:
+            #     metrics['train_score'] += get_score(occur.item()) / len(train_loader)
 
 
         scheduler.step()
 
-        # # Calculate metrics
-        # metrics['train_loss'] /= len(train_loader.dataset)
 
-        # Calculate metrics
-        metrics['train_loss'] = batch_size * (metrics['train_loss'] / len(train_loader))
+        # # Calculate metrics
+        metrics['train_loss'] /= len(train_loader.dataset)
+        metrics['train_score'] /= len(train_loader.dataset)
 
 
         norm = metrics['total_norm'] / metrics['count_norm']
@@ -207,6 +208,7 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion) -> Scores:
             score += 0
             lost_counter += 1
             continue
+
 
         image_tensor = image_tensor.squeeze(0)
         y_hat = model((image_tensor, question_words_indexes, pad_mask))
