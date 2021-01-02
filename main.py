@@ -50,12 +50,6 @@ def main(cfg: DictConfig) -> None:
                              num_workers=cfg['main']['num_workers'])
 
 
-    val_dataset_no_answers = MyDataset(mode='eval_no_answers')
-    eval_loader_no_answers = DataLoader(val_dataset_no_answers,
-                             batch_size=cfg['train']['batch_size'],
-                             shuffle=False,
-                             num_workers=cfg['main']['num_workers'])
-
 
     train_dataset = MyDataset(mode='train')
     train_loader = DataLoader(train_dataset,
@@ -65,9 +59,8 @@ def main(cfg: DictConfig) -> None:
 
 
     word_vocab_size = train_dataset.num_of_words
-
+    num_zero_scores_questions = len(val_dataset.zero_scores_questions)
     num_clases = train_dataset.num_of_labels
-
 
     # Init model
 
@@ -82,7 +75,7 @@ def main(cfg: DictConfig) -> None:
     train_params = train_utils.get_train_params(cfg)
 
     # Report metrics and hyper parameters to tensorboard
-    metrics = train(model, train_loader, eval_loader, eval_loader_no_answers, train_params, logger)
+    metrics = train(model, train_loader, eval_loader, num_zero_scores_questions, train_params, logger)
 
 
     hyper_parameters = main_utils.get_flatten_dict(cfg['train'])

@@ -20,7 +20,7 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
                  num_classes: int = 3219,
                  nhead: int = 4,
                  dropout: float = 0.2,
-                 mean_with_attention: bool = True):
+                 mean_with_attention: bool = False):
 
         super(VQA_model, self).__init__()
 

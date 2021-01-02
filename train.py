@@ -41,7 +41,7 @@ def get_metrics(best_eval_score: float, eval_score: float, train_loss: float) ->
 def train(model: nn.Module,
           train_loader: DataLoader,
           eval_loader: DataLoader,
-          eval_loader_no_answers: DataLoader,
+          num_zero_scores_questions: int,
           train_params: TrainParams,
           logger: TrainLogger) -> Metrics:
 
@@ -67,10 +67,10 @@ def train(model: nn.Module,
                                                 gamma=train_params.lr_gamma)
     criterion = nn.NLLLoss()
 
-    print(f"no answers examples in eval {len(eval_loader_no_answers.dataset)}")
+    print(f"no answers examples in eval {num_zero_scores_questions}")
+    print(f"all other examples in eval {len(eval_loader.dataset)}")
 
     for epoch in tqdm(range(train_params.num_epochs)):
-
 
         t = time.time()
         metrics = train_utils.get_zeroed_metrics_dict()
@@ -85,9 +85,6 @@ def train(model: nn.Module,
                 scores = scores.cuda()
                 pad_mask = pad_mask.cuda()
 
-
-            if i>0:
-                break
 
             if (i+1) % EPOCH_PRINT == 0:
                 print(f"Epoch: {epoch + 1}, batch: {i+1}/{len(train_loader)} ({cur_time()})")
@@ -128,7 +125,7 @@ def train(model: nn.Module,
 
         model.train(False)
         with torch.no_grad():
-            metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader, criterion, eval_loader_no_answers)
+            metrics['eval_score'], metrics['eval_loss'] = evaluate(model, eval_loader, criterion, num_zero_scores_questions)
         model.train(True)
 
 
@@ -157,7 +154,7 @@ def train(model: nn.Module,
 
 
 @torch.no_grad()
-def evaluate(model: nn.Module, evaluation_dataloader, criterion, eval_loader_no_answers) -> Scores:
+def evaluate(model: nn.Module, evaluation_dataloader, criterion, num_zero_scores_questions) -> Scores:
     """
     Evaluate a model without gradient calculation
     :param model: instance of a model
@@ -167,64 +164,37 @@ def evaluate(model: nn.Module, evaluation_dataloader, criterion, eval_loader_no_
     score = 0
     loss = 0
 
-    #
-    # for i, (image_tensor, question_words_indexes, pad_mask, labels, scores) in enumerate(evaluation_dataloader):
-
-          # if torch.cuda.is_available():
-          #       image_tensor = image_tensor.cuda()
-          #       question_words_indexes = question_words_indexes.cuda()
-          #       labels = labels.cuda()
-          #       scores = scores.cuda()
-          #       pad_mask = pad_mask.cuda()
-
-    #     image_tensor = image_tensor.squeeze(1)
-    #
-    #     y_hat = model((image_tensor, question_words_indexes, pad_mask))
-    #     y_hat_index = torch.argmax(y_hat, dim=1)
-    #
-    #     y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
-    #     y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
-    #
-    #     loss += criterion(y_hat, y_multiple_choice_answers)
-    #
-    #     occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
-    #
-    #     for occur in occurrences:
-    #         score += get_score(occur.item())
-    #
-    #     if (i + 1) % EPOCH_PRINT == 0:
-    #         print(f"---> Evaluation, batch: {i+1}/{len(evaluation_dataloader)} ({cur_time()})")
-
-
-
-    for i, (image_tensor, question_words_indexes, pad_mask, labels, scores) in enumerate(eval_loader_no_answers):
-
-        print(image_tensor.device)
+    for i, (image_tensor, question_words_indexes, pad_mask, labels, scores) in enumerate(evaluation_dataloader):
 
         if torch.cuda.is_available():
-                image_tensor = image_tensor.cuda()
-                question_words_indexes = question_words_indexes.cuda()
-                labels = labels.cuda()
-                scores = scores.cuda()
-                pad_mask = pad_mask.cuda()
+            image_tensor = image_tensor.cuda()
+            question_words_indexes = question_words_indexes.cuda()
+            labels = labels.cuda()
+            scores = scores.cuda()
+            pad_mask = pad_mask.cuda()
 
         image_tensor = image_tensor.squeeze(1)
 
         y_hat = model((image_tensor, question_words_indexes, pad_mask))
+        y_hat_index = torch.argmax(y_hat, dim=1)
 
         y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
         y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
-        loss += criterion(y_hat, y_multiple_choice_answers)
+        loss += criterion(y_hat, y_multiple_choice_answers) * image_tensor.size(0)
+
+        occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
+
+        for occur in occurrences:
+            score += get_score(occur.item())
 
         if (i + 1) % EPOCH_PRINT == 0:
-            print(f"---> Evaluation no answers, batch: {i+1}/{len(evaluation_dataloader)} ({cur_time()})")
+            print(f"---> Evaluation, batch: {i+1}/{len(evaluation_dataloader)} ({cur_time()})")
 
 
+    score = score / (len(evaluation_dataloader.dataset) + num_zero_scores_questions)
 
-    score = score / (len(evaluation_dataloader.dataset))
-
-    loss = loss / (len(evaluation_dataloader.dataset) - len(eval_loader_no_answers.dataset))
+    loss = loss / (len(evaluation_dataloader.dataset))
 
     return score, loss
 

@@ -58,9 +58,9 @@ class VGG19_E(nn.Module):
         layers_classifier = [
             weight_norm(nn.Linear(self.fc_dimension, self.inner_fc_dim), dim=None),
             nn.ReLU(),
-            nn.Dropout(dropout, inplace=True),
-            weight_norm(nn.Linear(self.inner_fc_dim, self.inner_fc_dim), dim=None),
-            nn.ReLU(),
+            # nn.Dropout(dropout, inplace=True),
+            # weight_norm(nn.Linear(self.inner_fc_dim, self.inner_fc_dim), dim=None),
+            # nn.ReLU(),
             nn.Dropout(dropout, inplace=True),
             weight_norm(nn.Linear(self.inner_fc_dim, self.output_dimension), dim=None)
         ]

@@ -41,23 +41,15 @@ class MyDataset(Dataset):
             self.image_path = '/datashare/train2014/'
             self.target_labels_path = '/home/student/HW2/data/cache/train_target.pkl'
             self.all_q_a_path = '/home/student/HW2/data/data_batches_train.pkl'
-            # self.zero_scores_questions_path = f'/home/student/HW2/data/zero_scores_questions_train.pkl'
-
-        elif self.mode == "eval":
-            self.q_path = '/datashare/v2_OpenEnded_mscoco_val2014_questions.json'
-            self.ann_path = '/home/student/HW2/data/cache/val_target.pkl'
-            self.image_path = '/datashare/val2014/'
-            self.target_labels_path = '/home/student/HW2/data/cache/val_target.pkl'
-            self.all_q_a_path = '/home/student/HW2/data/data_batches_val.pkl'
-            # self.zero_scores_questions_path = f'/home/student/HW2/data/zero_scores_questions_val.pkl'
+            self.zero_scores_questions_path = f'/home/student/HW2/data/zero_scores_questions_train.pkl'
 
         else:
             self.q_path = '/datashare/v2_OpenEnded_mscoco_val2014_questions.json'
             self.ann_path = '/home/student/HW2/data/cache/val_target.pkl'
             self.image_path = '/datashare/val2014/'
             self.target_labels_path = '/home/student/HW2/data/cache/val_target.pkl'
-            self.all_q_a_path = '/home/student/HW2/data/data_batches_no_answer_val.pkl'
-            # self.zero_scores_questions_path = f'/home/student/HW2/data/zero_scores_questions_val.pkl'
+            self.all_q_a_path = '/home/student/HW2/data/data_batches_val.pkl'
+            self.zero_scores_questions_path = f'/home/student/HW2/data/zero_scores_questions_val.pkl'
 
 
 
@@ -83,8 +75,8 @@ class MyDataset(Dataset):
             with open(self.all_q_a_path, 'rb') as f:
                 self.all_q_a = pickle.load(f)
 
-            # with open(self.zero_scores_questions_path, 'rb') as f:
-            #     self.zero_scores_questions = pickle.load(f)
+            with open(self.zero_scores_questions_path, 'rb') as f:
+                self.zero_scores_questions = pickle.load(f)
 
 
         self.only_lstm = only_lstm
@@ -125,8 +117,6 @@ class MyDataset(Dataset):
             image_tensor = torch.load(f"/home/student/HW2/data/train_tensors/COCO_train2014_{str(image_id).zfill(12)}_tensor")
         else:
             image_tensor = torch.load(f"/home/student/HW2/data/val_tensors/COCO_val2014_{str(image_id).zfill(12)}_tensor")
-
-
 
 
 
