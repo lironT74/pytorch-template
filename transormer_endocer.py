@@ -20,8 +20,8 @@ class TransofrmerEncoder(nn.Module, metaclass=ABCMeta):
         self.transformer_encoder = nn.TransformerEncoder(self.endocer_layer, num_layers=4)
 
 
-    def forward(self, input: (Tensor, Tensor)) -> Tensor:
-        question, pad_mask = input
+    def forward(self, input_question: (Tensor, Tensor)) -> Tensor:
+        question, pad_mask = input_question
         batch_size = question.shape[0]
         seq_length = question.shape[1]
 

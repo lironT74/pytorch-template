@@ -10,44 +10,44 @@ class VGG19_E(nn.Module):
 
         # self.conv_expand_1 = nn.Conv2d(3, 64, kernel_size=1, stride=1, bias=False)
         self.conv1_1 = nn.Conv2d(in_channels, 64, 3, 1, 1)
-        self.batch_norm1_1 = nn.BatchNorm2d(64)
+        # self.batch_norm1_1 = nn.BatchNorm2d(64)
         self.conv1_2 = nn.Conv2d(64, 64, 3, 1, 1)
-        self.batch_norm1_2 = nn.BatchNorm2d(64)
+        # self.batch_norm1_2 = nn.BatchNorm2d(64)
 
         # self.conv_expand_2 = nn.Conv2d(64, 128, kernel_size=1, stride=1, bias=False)
         self.conv2_1 = nn.Conv2d(64, 128, 3, 1, 1)
-        self.batch_norm2_1 = nn.BatchNorm2d(128)
+        # self.batch_norm2_1 = nn.BatchNorm2d(128)
         self.conv2_2 = nn.Conv2d(128, 128, 3, 1, 1)
-        self.batch_norm2_2 = nn.BatchNorm2d(128)
+        # self.batch_norm2_2 = nn.BatchNorm2d(128)
 
         # self.conv_expand_3 = nn.Conv2d(128, 256, kernel_size=1, stride=1, bias=False)
         self.conv3_1 = nn.Conv2d(128, 256, 3, 1, 1)
-        self.batch_norm3_1 = nn.BatchNorm2d(256)
+        # self.batch_norm3_1 = nn.BatchNorm2d(256)
         self.conv3_2 = nn.Conv2d(256, 256, 3, 1, 1)
-        self.batch_norm3_2 = nn.BatchNorm2d(256)
-        self.conv3_3 = nn.Conv2d(256, 256,  3, 1, 1)
-        self.batch_norm3_3 = nn.BatchNorm2d(256)
-        self.conv3_4 = nn.Conv2d(256, 256, 3, 1, 1)
-        self.batch_norm3_4 = nn.BatchNorm2d(256)
+        # self.batch_norm3_2 = nn.BatchNorm2d(256)
+        # self.conv3_3 = nn.Conv2d(256, 256,  3, 1, 1)
+        # self.batch_norm3_3 = nn.BatchNorm2d(256)
+        # self.conv3_4 = nn.Conv2d(256, 256, 3, 1, 1)
+        # self.batch_norm3_4 = nn.BatchNorm2d(256)
 
         # self.conv_expand_4 = nn.Conv2d(256, 512, kernel_size=1, stride=1, bias=False)
         self.conv4_1 = nn.Conv2d(256, 512, 3, 1, 1)
-        self.batch_norm4_1 = nn.BatchNorm2d(512)
+        # self.batch_norm4_1 = nn.BatchNorm2d(512)
         self.conv4_2 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.batch_norm4_2 = nn.BatchNorm2d(512)
-        self.conv4_3 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.batch_norm4_3 = nn.BatchNorm2d(512)
-        self.conv4_4 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.batch_norm4_4 = nn.BatchNorm2d(512)
+        # self.batch_norm4_2 = nn.BatchNorm2d(512)
+        # self.conv4_3 = nn.Conv2d(512, 512, 3, 1, 1)
+        # self.batch_norm4_3 = nn.BatchNorm2d(512)
+        # self.conv4_4 = nn.Conv2d(512, 512, 3, 1, 1)
+        # self.batch_norm4_4 = nn.BatchNorm2d(512)
 
         self.conv5_1 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.batch_norm5_1 = nn.BatchNorm2d(512)
+        # self.batch_norm5_1 = nn.BatchNorm2d(512)
         self.conv5_2 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.batch_norm5_2 = nn.BatchNorm2d(512)
-        self.conv5_3 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.batch_norm5_3 = nn.BatchNorm2d(512)
-        self.conv5_4 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.batch_norm5_4 = nn.BatchNorm2d(512)
+        # self.batch_norm5_2 = nn.BatchNorm2d(512)
+        # self.conv5_3 = nn.Conv2d(512, 512, 3, 1, 1)
+        # self.batch_norm5_3 = nn.BatchNorm2d(512)
+        # self.conv5_4 = nn.Conv2d(512, 512, 3, 1, 1)
+        # self.batch_norm5_4 = nn.BatchNorm2d(512)
 
         self.pool = nn.MaxPool2d(2, 2)
 
@@ -73,68 +73,73 @@ class VGG19_E(nn.Module):
 
     def forward(self, x):
 
+
         # saved_x = self.conv_expand_1(x)
         x = self.conv1_1(x)
-        x = self.batch_norm1_1(x)
+        # x = self.batch_norm1_1(x)
         x = self.relu(x)
         x = self.conv1_2(x)
-        x = self.batch_norm1_2(x)
+        # x = self.batch_norm1_2(x)
         x = self.relu(x)
         # x = x + saved_x
 
         x = self.pool(x)
+
 
 
         # saved_x = self.conv_expand_2(x)
         x = self.conv2_1(x)
-        x = self.batch_norm2_1(x)
+        # x = self.batch_norm2_1(x)
         x = self.relu(x)
         x = self.conv2_2(x)
-        x = self.batch_norm2_2(x)
+        # x = self.batch_norm2_2(x)
         x = self.relu(x)
         # x = x + saved_x
 
         x = self.pool(x)
+
 
 
         # saved_x = self.conv_expand_3(x)
         x = self.conv3_1(x)
-        x = self.batch_norm3_1(x)
+        # x = self.batch_norm3_1(x)
         x = self.relu(x)
         x = self.conv3_2(x)
-        x = self.batch_norm3_2(x)
+        # x = self.batch_norm3_2(x)
         x = self.relu(x)
         # x = x + saved_x
 
 
         # saved_x = x
-        x = self.conv3_3(x)
-        x = self.batch_norm3_3(x)
-        x = self.relu(x)
-        x = self.conv3_4(x)
-        x = self.batch_norm3_4(x)
-        x = self.relu(x)
+        # x = self.conv3_3(x)
+        # x = self.batch_norm3_3(x)
+        # x = self.relu(x)
+        # x = self.conv3_4(x)
+        # x = self.batch_norm3_4(x)
+        # x = self.relu(x)
         # x = x + saved_x
 
         x = self.pool(x)
 
 
+
+
         # saved_x = self.conv_expand_4(x)
         x = self.conv4_1(x)
-        x = self.batch_norm4_1(x)
+        # x = self.batch_norm4_1(x)
         x = self.relu(x)
         x = self.conv4_2(x)
-        x = self.batch_norm4_2(x)
+        # x = self.batch_norm4_2(x)
         x = self.relu(x)
         # x = saved_x + x
 
         # saved_x = x
-        x = self.conv4_3(x)
-        x = self.batch_norm4_3(x)
-        x = self.relu(x)
-        x = self.conv4_4(x)
-        x = self.batch_norm4_4(x)
-        x = self.relu(x)
+        # x = self.conv4_3(x)
+        # x = self.batch_norm4_3(x)
+        # x = self.relu(x)
+        # x = self.conv4_4(x)
+        # x = self.batch_norm4_4(x)
+        # x = self.relu(x)
         # x = saved_x + x
 
         x = self.pool(x)
@@ -142,23 +147,25 @@ class VGG19_E(nn.Module):
 
         # saved_x = x
         x = self.conv5_1(x)
-        x = self.batch_norm5_1(x)
+        # x = self.batch_norm5_1(x)
         x = self.relu(x)
         x = self.conv5_2(x)
-        x = self.batch_norm5_2(x)
+        # x = self.batch_norm5_2(x)
         x = self.relu(x)
         # x = saved_x + x
 
         # saved_x = x
-        x = self.conv5_3(x)
-        x = self.batch_norm5_3(x)
-        x = self.relu(x)
-        x = self.conv5_4(x)
-        x = self.batch_norm5_4(x)
-        x = self.relu(x)
+        # x = self.conv5_3(x)
+        # x = self.batch_norm5_3(x)
+        # x = self.relu(x)
+        # x = self.conv5_4(x)
+        # x = self.batch_norm5_4(x)
+        # x = self.relu(x)
         # x = saved_x + x
 
         x = self.pool(x)
+
+
 
 
         x_before_fc = x

@@ -27,6 +27,7 @@ def activation_func(activation):
     ])[activation]
 
 
+
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, activation='relu'):
         super().__init__()
@@ -93,7 +94,7 @@ class ResNetBottleNeckBlock(ResNetResidualBlock):
     def __init__(self, in_channels, out_channels, *args, **kwargs):
         super().__init__(in_channels, out_channels, expansion=4, *args, **kwargs)
         self.blocks = nn.Sequential(
-           conv_bn(self.in_channels, self.out_channels, self.conv, kernel_size=1),
+             conv_bn(self.in_channels, self.out_channels, self.conv, kernel_size=1),
              activation_func(self.activation),
              conv_bn(self.out_channels, self.out_channels, self.conv, kernel_size=3, stride=self.downsampling),
              activation_func(self.activation),

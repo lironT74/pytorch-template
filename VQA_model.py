@@ -5,6 +5,8 @@ from simple_cnn_model import SimpleCNNModel
 from resnet import resnet18
 from LSTM_question_model import LSTM
 from VGG19_E import VGG19_E
+from VGG19_A import VGG19_mini_A
+
 import torch
 from torch.nn.utils.weight_norm import weight_norm
 from transormer_endocer import TransofrmerEncoder
@@ -20,7 +22,8 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
                  num_classes: int = 3219,
                  nhead: int = 4,
                  dropout: float = 0.2,
-                 mean_with_attention: bool = False):
+                 mean_with_attention: bool = True,
+                 output_dim_nets: int = 1000):
 
         super(VQA_model, self).__init__()
 
@@ -31,11 +34,19 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         self.num_classes = num_classes
 
-        self.image_model = VGG19_E(3, self.word_emb_dim)
+        self.image_model = VGG19_mini_A(3, output_dim_nets)
 
-        self.question_model = TransofrmerEncoder(word_vocab_size=word_vocab_size,
-                                                 word_emb_dim=self.word_emb_dim,
-                                                 nhead = nhead)
+        # self.image_model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=False)
+
+
+        self.question_model = LSTM(word_vocab_size=word_vocab_size,
+                                   word_emb_dim=self.word_emb_dim,
+                                   output_dim_nets=output_dim_nets)
+
+        # self.question_model = TransofrmerEncoder(word_vocab_size=word_vocab_size,
+        #                                          word_emb_dim=self.word_emb_dim,
+        #                                          nhead = nhead)
+
 
         self.relu = nn.ReLU()
 
@@ -45,8 +56,9 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         self.inner_fc_dim = 4096
 
+
         layers_classifier = [
-            weight_norm(nn.Linear(2*self.word_emb_dim, self.inner_fc_dim), dim=None),
+            weight_norm(nn.Linear(2*output_dim_nets, self.inner_fc_dim), dim=None),
             nn.ReLU(),
             nn.Dropout(dropout, inplace=True),
             weight_norm(nn.Linear(self.inner_fc_dim, self.inner_fc_dim), dim=None),
@@ -72,6 +84,7 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         image = image.squeeze(0)
         cnn_output = self.image_model(image)                                # [batch, output_dim_nets]
+
 
         if self.mean_with_attention:
             question_outputs = question_outputs.view(batch_size, seq_length, -1)

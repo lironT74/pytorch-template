@@ -4,7 +4,7 @@ from torch import nn, Tensor
 from simple_cnn_model import SimpleCNNModel
 from resnet import resnet18
 from LSTM_question_model import LSTM
-from VGG19_A import VGG19_A
+from VGG19_A import VGG19_mini_A
 import torch
 
 
@@ -26,7 +26,7 @@ class VQA_from_lecture(nn.Module, metaclass=ABCMeta):
 
         # self.image_model = resnet18(3, output_dim_nets)
 
-        self.image_model = VGG19_A(3, output_dim_nets, return_before_fc=True)
+        self.image_model = VGG19_mini_A(3, output_dim_nets, return_before_fc=True)
         self.psi_i_V_i = nn.Parameter(torch.randn(1, 49, 512, 512))
         self.psi_i_v_i = nn.Parameter(torch.randn(1, 49, 512, 1))
 
