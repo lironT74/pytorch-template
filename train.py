@@ -86,7 +86,7 @@ def train(model: nn.Module,
                 pad_mask = pad_mask.cuda()
 
 
-            if (i+1) % EPOCH_PRINT == 0:
+            if (i+1) % EPOCH_PRINT == 0 or i == 0 or i == len(train_loader) - 1:
                 print(f"Epoch: {epoch + 1}, batch: {i+1}/{len(train_loader)} ({cur_time()})")
 
             image_tensor = image_tensor.squeeze(1)
@@ -188,7 +188,7 @@ def evaluate(model: nn.Module, evaluation_dataloader, criterion, num_zero_scores
         for occur in occurrences:
             score += get_score(occur.item())
 
-        if (i + 1) % EPOCH_PRINT == 0:
+        if (i + 1) % EPOCH_PRINT == 0 or i == 0 or i == len(evaluation_dataloader) - 1:
             print(f"---> Evaluation, batch: {i+1}/{len(evaluation_dataloader)} ({cur_time()})")
 
 
