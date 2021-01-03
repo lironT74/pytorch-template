@@ -46,7 +46,7 @@ def main(cfg: DictConfig) -> None:
 
 
 
-    train_dataset = MyDataset(mode='train')
+    train_dataset = MyDataset(mode='train', emb_dropout=cfg['train']['dropout'])
     train_loader = DataLoader(train_dataset,
                               batch_size=cfg['train']['batch_size'],
                               shuffle=True,
@@ -59,7 +59,7 @@ def main(cfg: DictConfig) -> None:
 
     # Init model
 
-    model = VQA_model(word_vocab_size=word_vocab_size, num_classes=num_clases)
+    model = VQA_model(word_vocab_size=word_vocab_size, num_classes=num_clases, dropout=cfg['train']['dropout'])
 
     # model.load_state_dict(torch.load(f'/home/student/HW2/logs/egorgo_1_3_12_36_32/model.pth')['model_state'])
 

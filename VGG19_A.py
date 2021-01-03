@@ -3,7 +3,7 @@ import torch
 from torch.nn.utils.weight_norm import weight_norm
 
 class VGG19_mini_A(nn.Module):
-    def __init__(self, in_channels, output_dimension, dropout=0.4, return_before_fc=False):
+    def __init__(self, in_channels, output_dimension, dropout, return_before_fc=False):
         super(VGG19_mini_A, self).__init__()
 
         self.output_dimension = output_dimension

@@ -11,12 +11,12 @@ class LSTM(nn.Module, metaclass=ABCMeta):
     """
     Example for a simple model
     """
-    def __init__(self, output_dim_nets: int = 1000,
-                 word_vocab_size: int = 100000,
-                 word_emb_dim: int = 50,
-                 dropout: float = 0.4,
-                 LSTM_num_layers: int = 2,
-                 num_classes: int = 3219
+    def __init__(self, output_dim_nets,
+                 word_vocab_size,
+                 word_emb_dim,
+                 dropout,
+                 LSTM_num_layers,
+                 num_classes
                  ):
 
         super(LSTM, self).__init__()

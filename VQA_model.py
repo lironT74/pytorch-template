@@ -23,7 +23,8 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
                  nhead: int = 4,
                  dropout: float = 0.4,
                  mean_with_attention: bool = True,
-                 output_dim_nets: int = 1000):
+                 output_dim_nets: int = 1000,
+                 LSTM_num_layers: int = 2):
 
         super(VQA_model, self).__init__()
 
@@ -39,14 +40,16 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
         self.question_model = LSTM(word_vocab_size=word_vocab_size,
                                    word_emb_dim=self.word_emb_dim,
                                    output_dim_nets=output_dim_nets,
-                                   num_classes=num_classes)
+                                   num_classes=num_classes,
+                                   dropout=dropout,
+                                   LSTM_num_layers=LSTM_num_layers)
 
         # self.question_model.load_state_dict(torch.load(f'/home/student/HW2/logs/only_LSTM_1_3_10_46_7/model.pth')['model_state'])
 
 
         #LOAD LSTM HERE
 
-        self.image_model = VGG19_mini_A(3, output_dim_nets)
+        self.image_model = VGG19_mini_A(3, output_dim_nets, dropout)
 
         self.relu = nn.ReLU()
 
