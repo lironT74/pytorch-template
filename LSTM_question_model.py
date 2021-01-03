@@ -14,7 +14,7 @@ class LSTM(nn.Module, metaclass=ABCMeta):
     def __init__(self, output_dim_nets: int = 1000,
                  word_vocab_size: int = 100000,
                  word_emb_dim: int = 50,
-                 dropout: float = 0.2,
+                 dropout: float = 0.4,
                  LSTM_num_layers: int = 2,
                  num_classes: int = 3219
                  ):
