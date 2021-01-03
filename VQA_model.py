@@ -18,10 +18,10 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
     """
     def __init__(self,
                  word_vocab_size: int = 100000,
-                 word_emb_dim: int = 128,
+                 word_emb_dim: int = 50,
                  num_classes: int = 3219,
                  nhead: int = 4,
-                 dropout: float = 0.2,
+                 dropout: float = 0.4,
                  mean_with_attention: bool = True,
                  output_dim_nets: int = 1000):
 
@@ -34,19 +34,19 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         self.num_classes = num_classes
 
-        self.image_model = VGG19_mini_A(3, output_dim_nets)
-
         # self.image_model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=False)
-
 
         self.question_model = LSTM(word_vocab_size=word_vocab_size,
                                    word_emb_dim=self.word_emb_dim,
-                                   output_dim_nets=output_dim_nets)
+                                   output_dim_nets=output_dim_nets,
+                                   num_classes=num_classes)
 
-        # self.question_model = TransofrmerEncoder(word_vocab_size=word_vocab_size,
-        #                                          word_emb_dim=self.word_emb_dim,
-        #                                          nhead = nhead)
+        # self.question_model.load_state_dict(torch.load(f'/home/student/HW2/logs/only_LSTM_1_3_10_46_7/model.pth')['model_state'])
 
+
+        #LOAD LSTM HERE
+
+        self.image_model = VGG19_mini_A(3, output_dim_nets)
 
         self.relu = nn.ReLU()
 
@@ -57,15 +57,23 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
         self.inner_fc_dim = 4096
 
 
+        # layers_classifier = [
+        #     weight_norm(nn.Linear(output_dim_nets, self.inner_fc_dim), dim=None),
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout, inplace=True),
+        #     weight_norm(nn.Linear(self.inner_fc_dim, self.inner_fc_dim), dim=None),
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout, inplace=True),
+        #     weight_norm(nn.Linear(self.inner_fc_dim, self.num_classes), dim=None)
+        # ]
+
         layers_classifier = [
-            weight_norm(nn.Linear(2*output_dim_nets, self.inner_fc_dim), dim=None),
+            weight_norm(nn.Linear(output_dim_nets, self.inner_fc_dim), dim=None),
             nn.ReLU(),
             nn.Dropout(dropout, inplace=True),
-            weight_norm(nn.Linear(self.inner_fc_dim, self.inner_fc_dim), dim=None),
-            nn.ReLU(),
-            nn.Dropout(dropout, inplace=True),
-            weight_norm(nn.Linear(self.inner_fc_dim, self.num_classes), dim=None)
+            weight_norm(nn.Linear(self.inner_fc_dim, self.num_classes), dim=None),
         ]
+
         self.classifier = nn.Sequential(*layers_classifier)
 
 
@@ -84,7 +92,6 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         image = image.squeeze(0)
         cnn_output = self.image_model(image)                                # [batch, output_dim_nets]
-
 
         if self.mean_with_attention:
             question_outputs = question_outputs.view(batch_size, seq_length, -1)
@@ -108,7 +115,9 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
             question_outputs = torch.mean(question_outputs, dim=0)
 
 
-        both = torch.cat((question_outputs, cnn_output), dim=1)        # [batch, output_dim_nets]
+        # both = torch.cat((question_outputs, cnn_output), dim=1)        # [batch, output_dim_nets]
+
+        both = question_outputs * cnn_output     # [batch, output_dim_nets]
 
         output = self.classifier(both)
 

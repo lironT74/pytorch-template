@@ -6,7 +6,7 @@ hydra:
   run:
     dir: logs/hydra
 main:
-  experiment_name_prefix: egor
+  experiment_name_prefix: egorgo
   seed: 1
   num_workers: 6
   parallel: False

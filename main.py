@@ -8,21 +8,16 @@ import hydra
 import os
 
 from train import train
-import train_separately
-from train_special_loss import train_special_loss
 from dataset import MyDataset
-from models.base_model import MyModel
 from torch.utils.data import DataLoader
 from utils import main_utils, train_utils
 from utils.train_logger import TrainLogger
 from omegaconf import DictConfig, OmegaConf
-from VQA_model_first import VQA
 from VQA_model import VQA_model
 from torchvision import models, transforms
 from PIL import Image
 from multiprocessing import Pool
-from VQA_form_lecture import VQA_from_lecture
-
+from train_separately import train_separately
 from LSTM_question_model import LSTM
 
 torch.backends.cudnn.benchmark = True
@@ -66,6 +61,11 @@ def main(cfg: DictConfig) -> None:
 
     model = VQA_model(word_vocab_size=word_vocab_size, num_classes=num_clases)
 
+    # model.load_state_dict(torch.load(f'/home/student/HW2/logs/egorgo_1_3_12_36_32/model.pth')['model_state'])
+
+    # model = LSTM(word_vocab_size=word_vocab_size, num_classes=num_clases)
+
+
     if torch.cuda.is_available():
         model = model.cuda()
 
@@ -76,6 +76,7 @@ def main(cfg: DictConfig) -> None:
 
     # Report metrics and hyper parameters to tensorboard
     metrics = train(model, train_loader, eval_loader, num_zero_scores_questions, train_params, logger)
+    # metrics = train_separately(model, train_loader, eval_loader, num_zero_scores_questions, train_params, logger)
 
 
     hyper_parameters = main_utils.get_flatten_dict(cfg['train'])

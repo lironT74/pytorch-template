@@ -57,6 +57,7 @@ def train(model: nn.Module,
 
     metrics = train_utils.get_zeroed_metrics_dict()
     best_eval_score = 0
+    best_train_loss = 10000
 
     # Create optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=train_params.lr)
@@ -90,8 +91,8 @@ def train(model: nn.Module,
                 print(f"Epoch: {epoch + 1}, batch: {i+1}/{len(train_loader)} ({cur_time()})")
 
             image_tensor = image_tensor.squeeze(1)
-
             y_hat = model((image_tensor, question_words_indexes, pad_mask))
+
             y_hat_index = torch.argmax(y_hat, dim=1)
 
             y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
@@ -105,7 +106,7 @@ def train(model: nn.Module,
             metrics['total_norm'] += nn.utils.clip_grad_norm_(model.parameters(), train_params.grad_clip)
             metrics['count_norm'] += 1
 
-            metrics['train_loss'] += loss.item() * image_tensor.size(0)
+            metrics['train_loss'] += loss.item() * labels.size(0)
 
 
             occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
@@ -150,6 +151,7 @@ def train(model: nn.Module,
                 logger.save_model(model, epoch, optimizer)
 
 
+
     return get_metrics(best_eval_score, metrics['eval_score'], metrics['train_loss'])
 
 
@@ -174,14 +176,14 @@ def evaluate(model: nn.Module, evaluation_dataloader, criterion, num_zero_scores
             pad_mask = pad_mask.cuda()
 
         image_tensor = image_tensor.squeeze(1)
-
         y_hat = model((image_tensor, question_words_indexes, pad_mask))
+
         y_hat_index = torch.argmax(y_hat, dim=1)
 
         y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
         y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
 
-        loss += criterion(y_hat, y_multiple_choice_answers) * image_tensor.size(0)
+        loss += criterion(y_hat, y_multiple_choice_answers) * labels.size(0)
 
         occurrences = (y_hat_index.unsqueeze(-1).expand_as(labels) == labels).sum(dim=1)
 

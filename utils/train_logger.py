@@ -104,8 +104,8 @@ class TrainLogger:
             model_dict['optimizer_state'] = optimizer.state_dict()
 
         model_path = os.path.join(self.exp_dir, 'model.pth')
-
         torch.save(model_dict, model_path)
+
 
     @staticmethod
     def _get_time_string() -> str:

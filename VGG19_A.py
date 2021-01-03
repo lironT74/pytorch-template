@@ -3,7 +3,7 @@ import torch
 from torch.nn.utils.weight_norm import weight_norm
 
 class VGG19_mini_A(nn.Module):
-    def __init__(self, in_channels, output_dimension, dropout=0.2, return_before_fc=False):
+    def __init__(self, in_channels, output_dimension, dropout=0.4, return_before_fc=False):
         super(VGG19_mini_A, self).__init__()
 
         self.output_dimension = output_dimension
@@ -13,13 +13,13 @@ class VGG19_mini_A(nn.Module):
         self.conv2_1 = nn.Conv2d(64, 128, 3, 1, 1)
 
         self.conv3_1 = nn.Conv2d(128, 256, 3, 1, 1)
-        # self.conv3_2 = nn.Conv2d(256, 256, 3, 1, 1)
+        self.conv3_2 = nn.Conv2d(256, 256, 3, 1, 1)
 
         self.conv4_1 = nn.Conv2d(256, 512, 3, 1, 1)
-        # self.conv4_2 = nn.Conv2d(512, 512, 3, 1, 1)
+        self.conv4_2 = nn.Conv2d(512, 512, 3, 1, 1)
 
         self.conv5_1 = nn.Conv2d(512, 512, 3, 1, 1)
-        # self.conv5_2 = nn.Conv2d(512, 512, 3, 1, 1)
+        self.conv5_2 = nn.Conv2d(512, 512, 3, 1, 1)
 
         self.pool = nn.MaxPool2d(2, 2)
 
@@ -29,7 +29,9 @@ class VGG19_mini_A(nn.Module):
         layers_classifier = [
             weight_norm(nn.Linear(self.fc_dimension, self.inner_fc_dim), dim=None),
             nn.ReLU(),
-
+            nn.Dropout(dropout, inplace=True),
+            weight_norm(nn.Linear(self.inner_fc_dim, self.inner_fc_dim), dim=None),
+            nn.ReLU(),
             nn.Dropout(dropout, inplace=True),
             weight_norm(nn.Linear(self.inner_fc_dim, self.output_dimension), dim=None)
         ]
@@ -55,15 +57,21 @@ class VGG19_mini_A(nn.Module):
 
         x = self.conv3_1(x)
         x = self.relu(x)
+        x = self.conv3_2(x)
+        x = self.relu(x)
         x = self.pool(x)
 
 
         x = self.conv4_1(x)
         x = self.relu(x)
+        x = self.con4_2(x)
+        x = self.relu(x)
         x = self.pool(x)
 
 
         x = self.conv5_1(x)
+        x = self.relu(x)
+        x = self.con5_2(x)
         x = self.relu(x)
         x = self.pool(x)
 

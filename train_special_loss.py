@@ -101,7 +101,6 @@ def train_special_loss(model: nn.Module, train_loader: DataLoader, eval_loader: 
 
             losses = []
 
-
             num_of_answers = labels.nelement()
 
             for label, count in label_counts.items():
