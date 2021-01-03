@@ -64,14 +64,14 @@ class VGG19_mini_A(nn.Module):
 
         x = self.conv4_1(x)
         x = self.relu(x)
-        x = self.con4_2(x)
+        x = self.conv4_2(x)
         x = self.relu(x)
         x = self.pool(x)
 
 
         x = self.conv5_1(x)
         x = self.relu(x)
-        x = self.con5_2(x)
+        x = self.conv5_2(x)
         x = self.relu(x)
         x = self.pool(x)
 
