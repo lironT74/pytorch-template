@@ -70,19 +70,10 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
         #     weight_norm(nn.Linear(self.inner_fc_dim, self.num_classes), dim=None)
         # ]
 
-        # layers_classifier = [
-        #     weight_norm(nn.Linear(output_dim_nets, self.inner_fc_dim), dim=None),
-        #     nn.ReLU(),
-        #     nn.Dropout(dropout, inplace=True),
-        #     weight_norm(nn.Linear(self.inner_fc_dim, self.num_classes), dim=None),
-        # ]
-
-
         layers_classifier = [
             nn.Linear(output_dim_nets, self.num_classes),
             nn.ReLU(),
             nn.Linear(self.num_classes, self.num_classes),
-
         ]
 
         self.classifier = nn.Sequential(*layers_classifier)
