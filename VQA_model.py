@@ -23,7 +23,7 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
                  nhead: int = 4,
                  dropout: float = 0.4,
                  mean_with_attention: bool = True,
-                 output_dim_nets: int = 1000,
+                 output_dim_nets: int = 1024,
                  LSTM_num_layers: int = 2):
 
         super(VQA_model, self).__init__()
@@ -70,11 +70,19 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
         #     weight_norm(nn.Linear(self.inner_fc_dim, self.num_classes), dim=None)
         # ]
 
+        # layers_classifier = [
+        #     weight_norm(nn.Linear(output_dim_nets, self.inner_fc_dim), dim=None),
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout, inplace=True),
+        #     weight_norm(nn.Linear(self.inner_fc_dim, self.num_classes), dim=None),
+        # ]
+
+
         layers_classifier = [
-            weight_norm(nn.Linear(output_dim_nets, self.inner_fc_dim), dim=None),
+            nn.Linear(output_dim_nets, self.num_classes),
             nn.ReLU(),
-            nn.Dropout(dropout, inplace=True),
-            weight_norm(nn.Linear(self.inner_fc_dim, self.num_classes), dim=None),
+            nn.Linear(self.num_classes, self.num_classes),
+
         ]
 
         self.classifier = nn.Sequential(*layers_classifier)

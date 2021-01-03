@@ -26,14 +26,20 @@ class VGG19_mini_A(nn.Module):
         self.fc_dimension = 7 * 7 * 512
         self.inner_fc_dim = 2048
 
+        # layers_classifier = [
+        #     weight_norm(nn.Linear(self.fc_dimension, self.inner_fc_dim), dim=None),
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout, inplace=True),
+        #     weight_norm(nn.Linear(self.inner_fc_dim, self.inner_fc_dim), dim=None),
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout, inplace=True),
+        #     weight_norm(nn.Linear(self.inner_fc_dim, self.output_dimension), dim=None)
+        # ]
+
         layers_classifier = [
-            weight_norm(nn.Linear(self.fc_dimension, self.inner_fc_dim), dim=None),
+            nn.Linear(self.fc_dimension, self.output_dimension),
             nn.ReLU(),
-            nn.Dropout(dropout, inplace=True),
-            weight_norm(nn.Linear(self.inner_fc_dim, self.inner_fc_dim), dim=None),
-            nn.ReLU(),
-            nn.Dropout(dropout, inplace=True),
-            weight_norm(nn.Linear(self.inner_fc_dim, self.output_dimension), dim=None)
+            nn.Linear(self.output_dimension, self.output_dimension)
         ]
         self.classifier = nn.Sequential(*layers_classifier)
 

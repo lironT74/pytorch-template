@@ -34,22 +34,23 @@ class LSTM(nn.Module, metaclass=ABCMeta):
 
         self.LSTM_num_layers = LSTM_num_layers
 
-        self.num_classes = num_classes
-        self.inner_fc_dim = 4096
 
-        layers_classifier = [
-            weight_norm(nn.Linear(output_dim_nets, self.inner_fc_dim), dim=None),
-            nn.ReLU(),
-            nn.Dropout(dropout, inplace=True),
-            weight_norm(nn.Linear(self.inner_fc_dim, self.inner_fc_dim), dim=None),
-            nn.ReLU(),
-            nn.Dropout(dropout, inplace=True),
-            weight_norm(nn.Linear(self.inner_fc_dim, self.num_classes), dim=None)
-        ]
-
-        self.classifier = nn.Sequential(*layers_classifier)
-
-        self.log_softmax = nn.LogSoftmax(dim=1)
+        # self.num_classes = num_classes
+        # self.inner_fc_dim = 4096
+        #
+        # layers_classifier = [
+        #     weight_norm(nn.Linear(output_dim_nets, self.inner_fc_dim), dim=None),
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout, inplace=True),
+        #     weight_norm(nn.Linear(self.inner_fc_dim, self.inner_fc_dim), dim=None),
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout, inplace=True),
+        #     weight_norm(nn.Linear(self.inner_fc_dim, self.num_classes), dim=None)
+        # ]
+        #
+        # self.classifier = nn.Sequential(*layers_classifier)
+        #
+        # self.log_softmax = nn.LogSoftmax(dim=1)
 
 
 

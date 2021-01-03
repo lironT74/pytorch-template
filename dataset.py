@@ -110,11 +110,11 @@ class MyDataset(Dataset):
         # y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
         if self.mode == 'train':
 
-            for i in range(len(question_words_indexes)):
-                if question_words_indexes[i] == self.words2index['<PAD>']:
-                    break
-                if np.random.binomial(n=1, p=self.emb_dropout):
-                    question_words_indexes[i] = self.words2index['<UNK>']
+            # for i in range(len(question_words_indexes)):
+            #     if question_words_indexes[i] == self.words2index['<PAD>']:
+            #         break
+            #     if np.random.binomial(n=1, p=self.emb_dropout):
+            #         question_words_indexes[i] = self.words2index['<UNK>']
 
 
             image_tensor = torch.load(f"/home/student/HW2/data/train_tensors/COCO_train2014_{str(image_id).zfill(12)}_tensor")
