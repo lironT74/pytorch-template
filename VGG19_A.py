@@ -39,6 +39,7 @@ class VGG19_mini_A(nn.Module):
         layers_classifier = [
             nn.Linear(self.fc_dimension, self.output_dimension),
             nn.ReLU(),
+            nn.Dropout(dropout, inplace=True),
             nn.Linear(self.output_dimension, self.output_dimension)
         ]
         self.classifier = nn.Sequential(*layers_classifier)

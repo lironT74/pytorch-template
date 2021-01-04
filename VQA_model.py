@@ -20,10 +20,10 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
                  word_vocab_size: int = 100000,
                  word_emb_dim: int = 50,
                  num_classes: int = 3219,
-                 nhead: int = 4,
+                 nhead: int = 5,
                  dropout: float = 0.4,
                  mean_with_attention: bool = True,
-                 output_dim_nets: int = 1024,
+                 output_dim_nets: int = 1000,
                  LSTM_num_layers: int = 2):
 
         super(VQA_model, self).__init__()
@@ -35,17 +35,20 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         self.num_classes = num_classes
 
-        # self.image_model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=False)
 
-        self.question_model = LSTM(word_vocab_size=word_vocab_size,
-                                   word_emb_dim=self.word_emb_dim,
-                                   output_dim_nets=output_dim_nets,
-                                   num_classes=num_classes,
-                                   dropout=dropout,
-                                   LSTM_num_layers=LSTM_num_layers)
+        # self.question_model = LSTM(word_vocab_size=word_vocab_size,
+        #                            word_emb_dim=self.word_emb_dim,
+        #                            output_dim_nets=output_dim_nets,
+        #                            num_classes=num_classes,
+        #                            dropout=dropout,
+        #                            LSTM_num_layers=LSTM_num_layers)
 
         # self.question_model.load_state_dict(torch.load(f'/home/student/HW2/logs/only_LSTM_1_3_10_46_7/model.pth')['model_state'])
 
+        self.question_model = TransofrmerEncoder(word_vocab_size=word_vocab_size,
+                                                 word_emb_dim = self.word_emb_dim,
+                                                 nhead = nhead,
+                                                 output_dim_nets = output_dim_nets)
 
         #LOAD LSTM HERE
 
@@ -73,6 +76,7 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
         layers_classifier = [
             nn.Linear(output_dim_nets, self.num_classes),
             nn.ReLU(),
+            nn.Dropout(dropout, inplace=True),
             nn.Linear(self.num_classes, self.num_classes),
         ]
 

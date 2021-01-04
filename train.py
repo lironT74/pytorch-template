@@ -66,7 +66,9 @@ def train(model: nn.Module,
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=train_params.lr_step_size,
                                                 gamma=train_params.lr_gamma)
+
     criterion = nn.NLLLoss()
+    # criterion = nn.CrossEntropyLoss()
 
     print(f"no answers examples in eval {num_zero_scores_questions}")
     print(f"all other examples in eval {len(eval_loader.dataset)}")
