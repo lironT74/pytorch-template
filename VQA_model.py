@@ -35,6 +35,8 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         self.num_classes = num_classes
 
+        self.output_dim_nets = output_dim_nets
+
 
         # self.question_model = LSTM(word_vocab_size=word_vocab_size,
         #                            word_emb_dim=self.word_emb_dim,
@@ -96,16 +98,20 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         question_outputs = self.question_model((question, pad_mask))
 
+        # Ignore padding
+        question_outputs = question_outputs[pad_mask == 0]
+        seq_length = question_outputs.shape[1]
+
         image = image.squeeze(0)
         cnn_output = self.image_model(image)                                # [batch, output_dim_nets]
 
         if self.mean_with_attention:
-            question_outputs = question_outputs.view(batch_size, seq_length, -1)
+            question_outputs = question_outputs.view(batch_size, -1, self.output_dim_nets)    # [batch, seq_len, output_dim_nets]
             # print('question_outputs', question_outputs.size())
 
             cnn_output = cnn_output.unsqueeze(-1)                                   # [batch, output_dim_nets, 1]
             # print('cnn_output', cnn_output.size())
-
+            # print('question', question_outputs.size())
             attention = torch.matmul(question_outputs, cnn_output).squeeze(-1)       # [batch, seq_length]
             # print('attention', attention.size())
 

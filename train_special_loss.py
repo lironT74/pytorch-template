@@ -96,9 +96,7 @@ def train_special_loss(model: nn.Module, train_loader: DataLoader, eval_loader: 
                 labels = labels.cuda()
                 scores = scores.cuda()
 
-
             y_hat = model((image_tensor, q_words_indexes_tensor))
-
             losses = []
 
             num_of_answers = labels.nelement()
