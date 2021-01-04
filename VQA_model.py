@@ -6,7 +6,7 @@ from resnet import resnet18
 from LSTM_question_model import LSTM
 from VGG19_E import VGG19_E
 from VGG19_A import VGG19_mini_A
-
+import torch.nn.functional as f
 import torch
 from torch.nn.utils.weight_norm import weight_norm
 from transormer_endocer import TransofrmerEncoder
@@ -22,7 +22,7 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
                  num_classes: int = 3219,
                  nhead: int = 5,
                  dropout: float = 0.4,
-                 mean_with_attention: bool = True,
+                 weighted_matmul_mean: bool = True,
                  output_dim_nets: int = 1000,
                  LSTM_num_layers: int = 2):
 
@@ -31,26 +31,26 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         self.word_emb_dim = word_emb_dim
 
-        self.mean_with_attention = mean_with_attention
+        self.mean_with_attention = weighted_matmul_mean
 
         self.num_classes = num_classes
 
         self.output_dim_nets = output_dim_nets
 
 
-        # self.question_model = LSTM(word_vocab_size=word_vocab_size,
-        #                            word_emb_dim=self.word_emb_dim,
-        #                            output_dim_nets=output_dim_nets,
-        #                            num_classes=num_classes,
-        #                            dropout=dropout,
-        #                            LSTM_num_layers=LSTM_num_layers)
+        self.question_model = LSTM(word_vocab_size=word_vocab_size,
+                                   word_emb_dim=self.word_emb_dim,
+                                   output_dim_nets=output_dim_nets,
+                                   num_classes=num_classes,
+                                   dropout=dropout,
+                                   LSTM_num_layers=LSTM_num_layers)
 
         # self.question_model.load_state_dict(torch.load(f'/home/student/HW2/logs/only_LSTM_1_3_10_46_7/model.pth')['model_state'])
 
-        self.question_model = TransofrmerEncoder(word_vocab_size=word_vocab_size,
-                                                 word_emb_dim = self.word_emb_dim,
-                                                 nhead = nhead,
-                                                 output_dim_nets = output_dim_nets)
+        # self.question_model = TransofrmerEncoder(word_vocab_size=word_vocab_size,
+        #                                          word_emb_dim = self.word_emb_dim,
+        #                                          nhead = nhead,
+        #                                          output_dim_nets = output_dim_nets)
 
         #LOAD LSTM HERE
 
@@ -60,7 +60,7 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         self.log_softmax = nn.LogSoftmax(dim=1)
 
-        self.soft_max = nn.Softmax(dim=1)
+        # self.soft_max = nn.Softmax(dim=1)
 
         self.inner_fc_dim = 4096
 
@@ -98,10 +98,6 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
 
         question_outputs = self.question_model((question, pad_mask))
 
-        # Ignore padding
-        question_outputs = question_outputs[pad_mask == 0]
-        seq_length = question_outputs.shape[1]
-
         image = image.squeeze(0)
         cnn_output = self.image_model(image)                                # [batch, output_dim_nets]
 
@@ -112,11 +108,11 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
             cnn_output = cnn_output.unsqueeze(-1)                                   # [batch, output_dim_nets, 1]
             # print('cnn_output', cnn_output.size())
             # print('question', question_outputs.size())
-            attention = torch.matmul(question_outputs, cnn_output).squeeze(-1)       # [batch, seq_length]
-            # print('attention', attention.size())
+            question_image_matmul = torch.matmul(question_outputs, cnn_output).squeeze(-1)       # [batch, seq_length]
 
-            scalars = self.soft_max(attention)                                          # [batch, seq_length]
-            # print('scalars', scalars.size())
+            #ignore <"PAD"> embeddings
+            question_image_matmul[pad_mask == 1] = 0
+            scalars = f.normalize(question_image_matmul, p=1, dim=1)
 
             question_outputs = torch.matmul(scalars.unsqueeze(1), question_outputs).squeeze(1)  # [batch, output_dim_nets]
             # print('question_outputs', question_outputs.size())
@@ -124,6 +120,8 @@ class VQA_model(nn.Module, metaclass=ABCMeta):
             cnn_output = cnn_output.squeeze(-1)
 
         else:
+
+            #TODO: how to ignore <"PAD"> in this case?
             question_outputs = torch.mean(question_outputs, dim=0)
 
 
