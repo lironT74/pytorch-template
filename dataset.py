@@ -108,19 +108,31 @@ class MyDataset(Dataset):
 
         # y_multiple_choice_answers_indexes = torch.argmax(scores, dim=1)
         # y_multiple_choice_answers = labels[range(labels.shape[0]), y_multiple_choice_answers_indexes]
-        if self.mode == 'train':
 
-            # for i in range(len(question_words_indexes)):
-            #     if question_words_indexes[i] == self.words2index['<PAD>']:
-            #         break
-            #     if np.random.binomial(n=1, p=self.emb_dropout):
-            #         question_words_indexes[i] = self.words2index['<UNK>']
+        # if self.mode == 'train':
+        #
+        #     # for i in range(len(question_words_indexes)):
+        #     #     if question_words_indexes[i] == self.words2index['<PAD>']:
+        #     #         break
+        #     #     if np.random.binomial(n=1, p=self.emb_dropout):
+        #     #         question_words_indexes[i] = self.words2index['<UNK>']
+        #
+        #
+        #     image_tensor = torch.load(f"/home/student/HW2/data/train_tensors/COCO_train2014_{str(image_id).zfill(12)}_tensor")
+        #
+        # else:
+        #     image_tensor = torch.load(f"/home/student/HW2/data/val_tensors/COCO_val2014_{str(image_id).zfill(12)}_tensor")
+        #
 
+        the_image_path = f'{self.image_path}COCO_{self.mode}2014_{str(image_id).zfill(12)}.jpg'
 
-            image_tensor = torch.load(f"/home/student/HW2/data/train_tensors/COCO_train2014_{str(image_id).zfill(12)}_tensor")
+        image = Image.open(the_image_path)
+        image_tensor = transforms.ToTensor()(image).unsqueeze(0)  # unsqueeze to add artificial first dimension
 
-        else:
-            image_tensor = torch.load(f"/home/student/HW2/data/val_tensors/COCO_val2014_{str(image_id).zfill(12)}_tensor")
+        if image_tensor.shape[1] == 1:
+            image_tensor = image_tensor.squeeze()
+            image_tensor = torch.stack([image_tensor, image_tensor, image_tensor])
+            image_tensor = image_tensor.unsqueeze(0)
 
 
         return image_tensor, question_words_indexes, pad_mask, labels, scores

@@ -21,6 +21,9 @@ class VGG19_mini_A(nn.Module):
         self.conv5_1 = nn.Conv2d(512, 512, 3, 1, 1)
         self.conv5_2 = nn.Conv2d(512, 512, 3, 1, 1)
 
+        self.pool_avg_pool = nn.AdaptiveAvgPool2d((7, 7))
+
+
         self.pool = nn.MaxPool2d(2, 2)
 
         self.fc_dimension = 7 * 7 * 512
@@ -82,6 +85,7 @@ class VGG19_mini_A(nn.Module):
         x = self.relu(x)
         x = self.pool(x)
 
+        x = self.pool_avg_pool(x)
 
         x_before_fc = x
         x = x.view(-1, self.fc_dimension)
